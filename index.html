@@ -43,12 +43,20 @@
       <div class="module-code">MOD-02 // DME</div>
     </button>
 
+    <button class="module-card" id="openPhoneBtn">
+      <div>
+        <div class="module-title">Mobiles Endgerät</div>
+        <div class="module-desc">Telefonie & Kommunikation</div>
+      </div>
+      <div class="module-code">MOD-03 // TEL</div>
+    </button>
+
     <button class="module-card" onclick="window.location.href='Leitstellentableau.html'">
       <div>
         <div class="module-title">Leitstellentableau</div>
         <div class="module-desc">Einsatzdisposition &amp; Einsatzmittelübersicht</div>
       </div>
-      <div class="module-code">MOD-03 // LST</div>
+      <div class="module-code">MOD-04 // LST</div>
     </button>
 
     <button class="module-card" onclick="window.location.href='verwaltung.html'">
@@ -56,7 +64,7 @@
         <div class="module-title">Verwaltung</div>
         <div class="module-desc">Stammdaten, Dienstpläne &amp; Personal</div>
       </div>
-      <div class="module-code">MOD-04 // ADM</div>
+      <div class="module-code">MOD-045// ADM</div>
     </button>
 
     <button class="module-card" id="btn-administration">
@@ -107,6 +115,12 @@
       window.open(`Melder.html?src=${encodeURIComponent(imgSrc)}`, '_blank',
         `width=${width},height=${height},resizable=yes`);
     };
+  });
+
+  const btnPhone = document.getElementById('openPhoneBtn');
+  btnPhone.addEventListener('click', () => {
+    // Öffnet die handy.html direkt in einem sauberen Smartphone-Fensterformat
+    window.open('handy.html', '_blank', 'width=300,height=560,resizable=yes');
   });
 </script>
 </body>

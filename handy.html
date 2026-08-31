@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smartphone</title>
+<!-- Supabase Client -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background: #0a0a0c;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    user-select: none;
+  }
+
+  /* Smartphone Gehäuse */
+  .smartphone {
+    position: relative;
+    width: 280px;
+    height: 560px;
+    background: #111;
+    border: 10px solid #2c2c30;
+    border-radius: 36px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.8), inset 0 0 10px rgba(255,255,255,0.05);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-sizing: border-box;
+  }
+
+  /* Dynamische Insel / Notch */
+  .notch {
+    position: absolute;
+    top: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90px;
+    height: 18px;
+    background: #000;
+    border-radius: 12px;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 8px;
+  }
+  .camera-dot {
+    width: 8px;
+    height: 8px;
+    background: #1a1a24;
+    border-radius: 50%;
+    box-shadow: inset 0 0 2px #000;
+  }
+
+  /* Bildschirm-Inhalt */
+  .screen {
+    flex: 1;
+    background: radial-gradient(circle at 50% 20%, #3a3f58 0%, #151824 50%, #0b0d14 100%);
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 30px 16px 8px 16px;
+    box-sizing: border-box;
+    position: relative;
+  }
+
+  /* Statusleiste */
+  .status-bar {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: rgba(255,255,255,0.85);
+    font-weight: 600;
+    margin-bottom: 5px;
+    padding: 0 4px;
+  }
+
+  /* Eigenes Nummer-Badge auf dem Home-Screen */
+  .my-number-badge {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.8);
+    background: rgba(255, 255, 255, 0.1);
+    padding: 6px 12px;
+    border-radius: 12px;
+    margin-bottom: 12px;
+    text-align: center;
+    backdrop-filter: blur(5px);
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* App-Ansichten */
+  .view {
+    display: none;
+    flex-direction: column;
+    flex: 1;
+  }
+  .view.active {
+    display: flex !important;
+  }
+
+  /* Home-Screen */
+  .home-screen {
+    align-items: flex-start;
+    justify-content: flex-start;
+    padding-top: 10px;
+  }
+
+  .app-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    width: 100%;
+  }
+
+  .app-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+  }
+
+  .app-icon {
+    width: 52px;
+    height: 52px;
+    background: linear-gradient(135deg, #34c759, #248a3d);
+    border-radius: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 6px 12px rgba(0,0,0,0.4), inset 0 1px 1px rgba(255,255,255,0.4);
+    transition: transform 0.1s;
+  }
+  .app-item:active .app-icon {
+    transform: scale(0.9);
+  }
+  
+  .app-icon svg {
+    width: 26px;
+    height: 26px;
+    fill: #ffffff;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2));
+  }
+
+  .app-title {
+    font-size: 10px;
+    margin-top: 5px;
+    font-weight: 500;
+    color: #fff;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+    text-align: center;
+    letter-spacing: -0.2px;
+  }
+
+  /* Moderner Smartphone Dialer */
+  .dialer-screen {
+    justify-content: space-between;
+    padding-top: 10px;
+  }
+
+  .dialer-top {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+  }
+
+  .phone-display-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 40px;
+    margin-top: 10px;
+    position: relative;
+  }
+
+  .phone-display {
+    font-size: 28px;
+    font-weight: 300;
+    letter-spacing: 1px;
+    text-align: center;
+    color: #fff;
+    outline: none;
+  }
+
+  .delete-btn {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.5);
+    font-size: 18px;
+    cursor: pointer;
+    position: absolute;
+    right: 10px;
+    padding: 5px;
+  }
+  .delete-btn:active {
+    color: #fff;
+  }
+
+  /* Tastenfeld */
+  .keypad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    width: 100%;
+    max-width: 220px;
+    margin: 0 auto;
+  }
+
+  .key {
+    background: rgba(255, 255, 255, 0.08);
+    border: none;
+    border-radius: 50%;
+    width: 56px;
+    height: 56px;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, transform 0.1s;
+    margin: 0 auto;
+    backdrop-filter: blur(5px);
+  }
+  .key:active {
+    background: rgba(255, 255, 255, 0.25);
+    transform: scale(0.92);
+  }
+
+  .key-number {
+    font-size: 20px;
+    font-weight: 400;
+    line-height: 1.1;
+  }
+
+  .key-letters {
+    font-size: 7px;
+    letter-spacing: 1.2px;
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  .dialer-actions {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 5px;
+  }
+
+  .call-btn {
+    background: #34c759 !important;
+    border-radius: 50%;
+    width: 56px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(52, 199, 89, 0.4);
+    transition: transform 0.1s;
+  }
+  .call-btn:active {
+    transform: scale(0.92);
+    background: #248a3d !important;
+  }
+
+  /* Anruf-Aktiv Bildschirm */
+  .active-call-screen {
+    align-items: center;
+    justify-content: space-between;
+    text-align: center;
+    padding: 20px 0 10px 0;
+  }
+
+  .call-timer {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.7);
+    font-variant-numeric: tabular-nums;
+    margin-top: 6px;
+  }
+
+  /* Anruf Aktions-Buttons */
+  .call-actions-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    width: 100%;
+    max-width: 220px;
+    margin: 20px auto;
+  }
+
+  .call-action-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: none;
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    gap: 6px;
+  }
+
+  .call-action-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(5px);
+    transition: background 0.2s, transform 0.1s;
+  }
+
+  .call-action-btn:active .call-action-icon {
+    transform: scale(0.92);
+  }
+
+  .call-action-btn.active .call-action-icon {
+    background: #ffffff;
+  }
+
+  .call-action-btn.active .call-action-icon svg {
+    fill: #000000;
+  }
+
+  .call-action-label {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.8);
+    font-weight: 400;
+  }
+
+  .hangup-btn {
+    background: #ff3b30;
+    color: white;
+    border: none;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 6px 15px rgba(255, 59, 48, 0.4);
+    transition: transform 0.1s;
+    margin: 0 auto;
+  }
+  .hangup-btn:active {
+    transform: scale(0.92);
+  }
+
+  /* Home Indicator Strich */
+  .home-indicator-bar {
+    width: 100%;
+    height: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .home-indicator {
+    width: 100px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.4);
+    border-radius: 2px;
+    transition: background 0.2s, transform 0.1s;
+  }
+  .home-indicator-bar:active .home-indicator {
+    background: rgba(255, 255, 255, 0.8);
+    transform: scaleX(0.95);
+  }
+</style>
+</head>
+<body>
+
+<div class="smartphone">
+  <div class="notch"><div class="camera-dot"></div></div>
+  <div class="screen">
+    <!-- Statusleiste -->
+    <div class="status-bar">
+      <span id="phone-clock">12:00</span>
+      <span>5G 📶 🔋</span>
+    </div>
+
+    <!-- ANSICHT 1: Home Screen -->
+    <div id="home-view" class="view active home-screen">
+      <div id="my-number-badge" class="my-number-badge">📱 Nummer wird geladen...</div>
+
+      <div class="app-grid">
+        <div class="app-item" onclick="openDialer()">
+          <div class="app-icon">
+            <svg viewBox="0 0 24 24">
+              <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
+            </svg>
+          </div>
+          <span class="app-title">Telefon</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ANSICHT 2: Moderner Dialer -->
+    <div id="dialer-view" class="view dialer-screen">
+      <div class="dialer-top">
+        <div class="phone-display-container">
+          <div id="dialed-number" class="phone-display"></div>
+          <button class="delete-btn" onclick="clearKey()" id="delete-btn" style="display: none;">⌫</button>
+        </div>
+      </div>
+      
+      <div class="keypad">
+        <button class="key" onclick="pressKey('1')"><span class="key-number">1</span><span class="key-letters">&nbsp;</span></button>
+        <button class="key" onclick="pressKey('2')"><span class="key-number">2</span><span class="key-letters">ABC</span></button>
+        <button class="key" onclick="pressKey('3')"><span class="key-number">3</span><span class="key-letters">DEF</span></button>
+        <button class="key" onclick="pressKey('4')"><span class="key-number">4</span><span class="key-letters">GHI</span></button>
+        <button class="key" onclick="pressKey('5')"><span class="key-number">5</span><span class="key-letters">JKL</span></button>
+        <button class="key" onclick="pressKey('6')"><span class="key-number">6</span><span class="key-letters">MNO</span></button>
+        <button class="key" onclick="pressKey('7')"><span class="key-number">7</span><span class="key-letters">PQRS</span></button>
+        <button class="key" onclick="pressKey('8')"><span class="key-number">8</span><span class="key-letters">TUV</span></button>
+        <button class="key" onclick="pressKey('9')"><span class="key-number">9</span><span class="key-letters">WXYZ</span></button>
+        <button class="key" onclick="pressKey('*')"><span class="key-number">*</span><span class="key-letters">&nbsp;</span></button>
+        <button class="key" onclick="pressKey('0')"><span class="key-number">0</span><span class="key-letters">+</span></button>
+        <button class="key" onclick="pressKey('#')"><span class="key-number">#</span><span class="key-letters">&nbsp;</span></button>
+      </div>
+
+      <div class="dialer-actions">
+        <button class="call-btn" onclick="makeCall()">
+          <svg style="width:24px;height:24px;fill:#fff;" viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- ANSICHT 3: Aktiver Anruf -->
+    <div id="call-view" class="view active-call-screen">
+      <div>
+        <div style="font-size: 13px; color: rgba(255,255,255,0.6); font-weight: 500; margin-top: 10px;">Notruf-Zentrale</div>
+        <div id="called-display-number" style="font-size: 26px; font-weight: bold; letter-spacing: 1px; margin-top: 4px;">112</div>
+        <div id="call-status-text" style="font-size: 14px; color: #34c759; font-weight: 500; margin-top: 6px;">Verbinde...</div>
+        <div id="call-timer" class="call-timer">00:00</div>
+      </div>
+      
+      <div class="call-actions-grid">
+        <button class="call-action-btn" id="btn-mute" onclick="toggleMute()">
+          <div class="call-action-icon">
+            <svg style="width:22px;height:22px;fill:#fff;" viewBox="0 0 24 24">
+              <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/>
+            </svg>
+          </div>
+          <span class="call-action-label">Stumm</span>
+        </button>
+
+        <button class="call-action-btn" onclick="openDialerFromCall()">
+          <div class="call-action-icon">
+            <svg style="width:22px;height:22px;fill:#fff;" viewBox="0 0 24 24">
+              <path d="M12 10c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 12c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm-6-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 12c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm12-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 12c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
+            </svg>
+          </div>
+          <span class="call-action-label">Tasten</span>
+        </button>
+
+        <button class="call-action-btn" id="btn-speaker" onclick="toggleSpeaker()">
+          <div class="call-action-icon">
+            <svg style="width:22px;height:22px;fill:#fff;" viewBox="0 0 24 24">
+              <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+            </svg>
+          </div>
+          <span class="call-action-label">Lautsprecher</span>
+        </button>
+      </div>
+
+      <div style="margin-bottom: 15px;">
+        <button class="hangup-btn" onclick="endCall()">
+          <svg style="width:28px;height:28px;fill:#fff;transform:rotate(135deg);" viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Home Indicator -->
+    <div class="home-indicator-bar" onclick="openHome()">
+      <div class="home-indicator"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // -- SUPABASE KONFIGURATION --
+  const SUPABASE_URL = 'https://kvbeogaiijppblhaoqyc.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YmVvZ2FpaWpwcGJsaGFvcXljIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxMTI4NTMsImV4cCI6MjEwMzY4ODg1M30.cPz9RJ3pqtS91UE1wuj-1i0UiCR5iSmjVELDnYjcx-0';
+  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  let activeCallId = null;
+  let myPhoneNumber = "";
+  let callTimerInterval = null;
+  let callSeconds = 0;
+  let callRealtimeChannel = null;
+  let holdInterval = null;
+  let currentCallStatus = null;
+
+  // Stimmen im Hintergrund initialisieren
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.onvoiceschanged = () => {
+      window.speechSynthesis.getVoices();
+    };
+  }
+
+  // -- SOUND GENERATOR (WEB AUDIO API) --
+  let audioCtx = null;
+  let ringInterval = null;
+
+  const dtmfFreqs = {
+    '1': [697, 1209], '2': [697, 1336], '3': [697, 1477],
+    '4': [770, 1209], '5': [770, 1336], '6': [770, 1477],
+    '7': [852, 1209], '8': [852, 1336], '9': [852, 1477],
+    '*': [941, 1209], '0': [941, 1336], '#': [941, 1477]
+  };
+
+  function getAudioContext() {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+    return audioCtx;
+  }
+
+  // Schaltet Audio & Speech Synthesis explizit durch Klick frei (Autoplay-Fix)
+  function unlockSpeechAndAudio() {
+    getAudioContext();
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.resume();
+      const dummy = new SpeechSynthesisUtterance(' ');
+      dummy.volume = 0;
+      window.speechSynthesis.speak(dummy);
+    }
+  }
+
+  // DTMF-Tastenton
+  function playDTMF(key) {
+    const freqs = dtmfFreqs[key];
+    if (!freqs) return;
+    try {
+      const ctx = getAudioContext();
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc1.frequency.value = freqs[0];
+      osc2.frequency.value = freqs[1];
+
+      gain.gain.setValueAtTime(0.08, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.12);
+
+      osc1.connect(gain);
+      osc2.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc1.start();
+      osc2.start();
+      osc1.stop(ctx.currentTime + 0.12);
+      osc2.stop(ctx.currentTime + 0.12);
+    } catch(e) {
+      console.warn("Audio-Fehler:", e);
+    }
+  }
+
+  // Freizeichen
+  function startRingbackTone() {
+    stopRingbackTone();
+    try {
+      const ctx = getAudioContext();
+      function playTone() {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.frequency.value = 425;
+
+        gain.gain.setValueAtTime(0.06, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 1.0);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start();
+        osc.stop(ctx.currentTime + 1.0);
+      }
+      playTone();
+      ringInterval = setInterval(playTone, 2500);
+    } catch(e) {
+      console.warn("Freizeichen-Fehler:", e);
+    }
+  }
+
+  function stopRingbackTone() {
+    if (ringInterval) {
+      clearInterval(ringInterval);
+      ringInterval = null;
+    }
+  }
+
+  // -- SPRACHANSAGE FÜR HALTEMODUS (WEB SPEECH API) --
+  function playHoldAnnouncement() {
+    stopHoldAnnouncement();
+    stopRingbackTone();
+
+    document.getElementById('call-status-text').textContent = "Gehalten (Warteschleife)...";
+    document.getElementById('call-status-text').style.color = "#ff9500";
+
+    function speakText() {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.resume();
+        window.speechSynthesis.cancel(); // Vorherige Sprache abbrechen
+
+        // Puffer-Delay zur Vermeidung von Race-Conditions
+        setTimeout(() => {
+          const text = "Alle Disponenten sind derzeit belegt. Bitte warten Sie, Ihr Anruf wird gehalten.";
+          const utterance = new SpeechSynthesisUtterance(text);
+          
+          const voices = window.speechSynthesis.getVoices();
+          const germanVoice = voices.find(v => v.lang && v.lang.startsWith('de'));
+          if (germanVoice) {
+            utterance.voice = germanVoice;
+          }
+          
+          utterance.lang = 'de-DE';
+          utterance.rate = 0.95;
+
+          window.speechSynthesis.speak(utterance);
+        }, 100);
+      }
+    }
+
+    speakText();
+    holdInterval = setInterval(() => {
+      if (currentCallStatus === 'gehalten') {
+        speakText();
+      }
+    }, 8000);
+  }
+
+  function stopHoldAnnouncement() {
+    if (holdInterval) {
+      clearInterval(holdInterval);
+      holdInterval = null;
+    }
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+  }
+
+  // BENUTZER & NUMMER BEIM START ABFRAGEN
+  async function initPhone() {
+    const badge = document.getElementById('my-number-badge');
+    const { data: { session } } = await supabaseClient.auth.getSession();
+
+    if (!session) {
+      badge.textContent = "⚠️ Kein Auth-Login!";
+      return;
+    }
+
+    const { data, error } = await supabaseClient
+      .from('benutzer')
+      .select('telefonnummer')
+      .eq('id', session.user.id)
+      .single();
+
+    if (error) {
+      badge.textContent = "📱 Nummer nicht gefunden";
+    } else if (data) {
+      myPhoneNumber = data.telefonnummer;
+      badge.textContent = `📱 ${myPhoneNumber}`;
+    }
+  }
+
+  initPhone();
+
+  // Status-Uhr
+  function updateClock() {
+    const now = new Date();
+    const h = now.getHours().toString().padStart(2, '0');
+    const m = now.getMinutes().toString().padStart(2, '0');
+    document.getElementById('phone-clock').textContent = `${h}:${m}`;
+  }
+  setInterval(updateClock, 1000);
+  updateClock();
+
+  // Navigation
+  function switchView(viewId) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById(viewId).classList.add('active');
+  }
+
+  function openHome() { switchView('home-view'); }
+  function openDialer() { 
+    currentNumber = "";
+    updateDisplay();
+    switchView('dialer-view'); 
+  }
+
+  function openDialerFromCall() {
+    switchView('dialer-view');
+  }
+
+  function toggleMute() {
+    document.getElementById('btn-mute').classList.toggle('active');
+  }
+
+  function toggleSpeaker() {
+    document.getElementById('btn-speaker').classList.toggle('active');
+  }
+
+  let currentNumber = "";
+  const display = document.getElementById('dialed-number');
+  const deleteBtn = document.getElementById('delete-btn');
+
+  function pressKey(num) {
+    playDTMF(num);
+    if (currentNumber.length < 15) {
+      currentNumber += num;
+      updateDisplay();
+    }
+  }
+
+  function clearKey() {
+    currentNumber = currentNumber.slice(0, -1);
+    updateDisplay();
+  }
+
+  function updateDisplay() {
+    display.textContent = currentNumber;
+    deleteBtn.style.display = currentNumber.length > 0 ? 'block' : 'none';
+  }
+
+  // ANRUF STARTEN
+  async function makeCall() {
+    if (!currentNumber) return;
+    
+    // Autoplay-Freischaltung über den direkten Klick
+    unlockSpeechAndAudio();
+    
+    document.getElementById('called-display-number').textContent = currentNumber;
+    document.getElementById('call-status-text').textContent = "Verbinde...";
+    document.getElementById('call-status-text').style.color = "#34c759";
+    document.getElementById('call-timer').textContent = "00:00";
+    
+    document.getElementById('btn-mute').classList.remove('active');
+    document.getElementById('btn-speaker').classList.remove('active');
+    
+    switchView('call-view');
+    
+    if (currentNumber === "112" || currentNumber === "110") {
+      startRingbackTone();
+      currentCallStatus = 'aktiv';
+
+      try {
+        const { data, error } = await supabaseClient
+          .from('anrufe')
+          .insert([
+            { 
+              nummer: currentNumber, 
+              anrufer_nummer: myPhoneNumber,
+              status: 'aktiv', 
+              zeitpunkt: new Date() 
+            }
+          ])
+          .select();
+
+        if (error) {
+          console.error('Fehler beim Senden des Anrufs:', error);
+          document.getElementById('call-status-text').textContent = "Fehler";
+          stopRingbackTone();
+        } else if (data && data.length > 0) {
+          activeCallId = data[0].id;
+
+          // Realtime-Abonnement
+          callRealtimeChannel = supabaseClient
+  .channel('call-' + activeCallId)
+  .on(
+    'postgres_changes',
+    { event: 'UPDATE', schema: 'public', table: 'anrufe', filter: `id=eq.${activeCallId}` },
+    (payload) => {
+      const newStatus = payload.new.status;
+      currentCallStatus = newStatus;
+
+      if (newStatus === 'angenommen' || newStatus === 'verbunden') {
+        onCallConnected();
+      } else if (newStatus === 'gehalten' || newStatus === 'halten') { // <-- Hier 'halten' ergänzt
+        playHoldAnnouncement();
+      } else if (newStatus === 'beendet') {
+        endCall();
+      }
+    }
+  )
+  .subscribe();
+        }
+      } catch (err) {
+        console.error('Verbindungsfehler:', err);
+        stopRingbackTone();
+      }
+
+    } else {
+      document.getElementById('call-status-text').textContent = "Nummer nicht vergeben";
+    }
+  }
+
+  // Anruf verbunden
+  function onCallConnected() {
+    stopRingbackTone();
+    stopHoldAnnouncement();
+
+    document.getElementById('call-status-text').textContent = "Verbunden";
+    document.getElementById('call-status-text').style.color = "#34c759";
+
+    callSeconds = 0;
+    if (callTimerInterval) clearInterval(callTimerInterval);
+    callTimerInterval = setInterval(() => {
+      callSeconds++;
+      const m = Math.floor(callSeconds / 60).toString().padStart(2, '0');
+      const s = (callSeconds % 60).toString().padStart(2, '0');
+      document.getElementById('call-timer').textContent = `${m}:${s}`;
+    }, 1000);
+  }
+
+  // ANRUF BEENDEN
+  async function endCall() {
+    stopRingbackTone();
+    stopHoldAnnouncement();
+
+    if (callTimerInterval) {
+      clearInterval(callTimerInterval);
+      callTimerInterval = null;
+    }
+
+    if (callRealtimeChannel) {
+      supabaseClient.removeChannel(callRealtimeChannel);
+      callRealtimeChannel = null;
+    }
+
+    if (activeCallId) {
+      try {
+        await supabaseClient
+          .from('anrufe')
+          .update({ status: 'beendet' })
+          .eq('id', activeCallId);
+      } catch (err) {
+        console.error('Fehler beim Auflegen:', err);
+      }
+      activeCallId = null;
+    }
+    openDialer();
+  }
+
+  // Automatisch Anruf beenden, wenn das Fenster/Tab geschlossen oder aktualisiert wird
+function autoEndCallOnUnload() {
+  if (!activeCallId) return;
+
+  const url = `${SUPABASE_URL}/rest/v1/anrufe?id=eq.${activeCallId}`;
+  const body = JSON.stringify({ status: 'beendet' });
+
+  // fetch mit keepalive stellt sicher, dass die Anfrage beim Schließen ausgeführt wird
+  fetch(url, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      'Prefer': 'return=minimal'
+    },
+    body: body,
+    keepalive: true
+  });
+}
+
+// Event-Listener für das Schließen/Verlassen der Seite
+window.addEventListener('pagehide', autoEndCallOnUnload);
+window.addEventListener('beforeunload', autoEndCallOnUnload);
+</script>
+
+</body>
+</html>

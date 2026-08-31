@@ -32,26 +32,21 @@
   /* === LED (Zustands-Anzeige) === */
   #statusLed {
     position: absolute;
-    top: 86px;          
-    left: 130px;        
-    width: 24px;        
-    height: 10px;       
-    background-color: #7d807d; 
+    top: 86px;          /* Anpassen zum Skalieren/Positionieren */
+    left: 130px;        /* Anpassen zum Skalieren/Positionieren */
+    width: 24px;        /* Breite der LED */
+    height: 10px;       /* Höhe der LED */
+    background-color: #7d807d; /* Gerät aus = Inaktiv / Standardfarbe */
     border-radius: 20%; 
     box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
     z-index: 10;
-    transition: background-color 0.2s, box-shadow 0.2s;
+    transition: background-color 0.3s, box-shadow 0.3s;
   }
 
   /* LED-Zustände */
   .led-red {
     background-color: #ff3333 !important;
     box-shadow: 0 0 8px #ff3333 !important;
-  }
-
-  .led-yellow {
-    background-color: #ffcc00 !important;
-    box-shadow: 0 0 8px #ffcc00 !important;
   }
 
   .led-blue {
@@ -61,11 +56,11 @@
 
   @keyframes greenPulse {
     0%, 90% {
-      background-color: #7d807d; 
+      background-color: #7d807d; /* Zurück zur Standardfarbe in der Aus-Phase */
       box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
     }
     95% {
-      background-color: #00ff66; 
+      background-color: #00ff66; /* Grün beim Aufblinken */
       box-shadow: 0 0 8px #00ff66;
     }
     100% {
@@ -78,14 +73,14 @@
     animation: greenPulse 2s infinite;
   }
 
-  /* === DISPLAY === */
+  /* === DISPLAY (Realistisches TETRA Layout) === */
   #displayPanel {
     position: absolute;
     top: 227px;        
     left: 50px;        
     width: 115px;      
     height: 147px;      
-    background-color: #222; 
+    background-color: #222; /* Gerät aus = dunkel */
     color: #000000;
     font-family: "Courier New", Courier, monospace;
     display: flex;
@@ -106,10 +101,11 @@
     margin: auto;
   }
 
+  /* Statusleiste oben */
   #statusBar {
     display: none;
     font-size: 8px;
-    font-weight: bold;
+    font-weight: 2000;
     justify-content: space-between;
     align-items: center;
     border-bottom: 1px solid #000;
@@ -125,6 +121,7 @@
     font-size: 7px;
   }
 
+  /* Hauptbereich (Kanal / Sprecher) */
   #mainDisplayContent {
     display: none;
     flex-direction: column;
@@ -135,9 +132,10 @@
   }
 
   #displayText {
-    font-size: 15px;
-    font-weight: bold;
+    font-size: 16px;
+    font-weight: 2000;
     letter-spacing: -0.5px;
+    text-shadow: 0.5px 0.5px 0px #000;
   }
 
   #subText {
@@ -146,16 +144,18 @@
     font-weight: bold;
   }
 
+  /* Softkey-Leiste unten */
   #softkeyBar {
     display: none;
     font-size: 9px;
-    font-weight: bold;
+    font-weight: 2000;
     justify-content: space-between;
     border-top: 1px solid #000;
     padding-top: 2px;
     width: 100%;
   }
 
+  /* === BUTTONS === */
   .overlay-btn {
     position: absolute;
     background-color: rgba(37, 99, 235, 0.85);
@@ -174,6 +174,7 @@
     transform: scale(1.05);
   }
 
+  /* Fahrzeuganzeige */
   #vehicleHeader {
     position: absolute;
     top: 100px;
@@ -193,6 +194,7 @@
     overflow: hidden;      
   }
 
+  /* Tastenpositionen */
   #btn-action1 { bottom: 225px; left: 49px; }
   #btn-action2 { bottom: 225px; left: 88px; }
   #btn-action3 { bottom: 225px; left: 129px; }
@@ -288,6 +290,7 @@ const mainDisplayContent = document.getElementById('mainDisplayContent');
 const softkeyBar = document.getElementById('softkeyBar');
 const clock = document.getElementById('clock');
 
+// Status-Texte Mapping
 const statusTexts = {
   1: "E-Bereit Funk",
   2: "E-Bereit Wache",
@@ -301,10 +304,13 @@ const statusTexts = {
   0: "NOTRUF"
 };
 
+// Audio für Statusmeldung definieren
+const statusSound = new Audio("Status-1.wav");
+
+// LED Hilfsfunktion
 function setLedState(state) {
   statusLed.className = "";
   if (state === "red") statusLed.classList.add('led-red');
-  else if (state === "yellow") statusLed.classList.add('led-yellow');
   else if (state === "blue") statusLed.classList.add('led-blue');
   else if (state === "standby") statusLed.classList.add('led-standby-blink');
 }
@@ -315,6 +321,7 @@ function setDisplayText(text) {
 
 let room = "DN_ALLG";
 
+// --- Funktion: Status frisch aus der Datenbank laden und anzeigen ---
 async function fetchAndDisplayStatus() {
   try {
     const { data, error } = await supabaseClient
@@ -324,21 +331,25 @@ async function fetchAndDisplayStatus() {
       .single();
 
     if (error) {
+      console.warn("⚠️ Konnte Status nicht aus DB laden:", error.message);
       subText.textContent = "Status ?";
       return;
     }
 
     if (data && data.status !== null && data.status !== undefined) {
       const statusNum = data.status;
-      subText.textContent = statusTexts[statusNum] || `Status ${statusNum}`;
+      const textDescription = statusTexts[statusNum] || `Status ${statusNum}`;
+      subText.textContent = textDescription;
     } else {
       subText.textContent = "Bereit";
     }
   } catch (err) {
+    console.error("❌ Fehler beim Abrufen des Status:", err);
     subText.textContent = "Netzwerk Err";
   }
 }
 
+// --- Status-Update Funktion für Supabase ---
 async function sendStatusToSupabase(statusValue) {
   if (!deviceOn) return;
   
@@ -354,22 +365,24 @@ async function sendStatusToSupabase(statusValue) {
       .eq('name', fahrzeug);
 
     if (error) {
+      console.error("❌ Fehler beim Aktualisieren des Status in Supabase:", error.message);
       subText.textContent = "Status Err";
     } else {
-      if (statusValue === 0) {
-        playEmergencyAlarm();
-        setLedState("red");
-      } else {
-        playStatusTone();
-      }
+      console.log(`✅ Status ${statusValue} (${textDescription}) erfolgreich für ${fahrzeug} gespeichert.`);
+      
+      // Status-Ton abspielen
+      statusSound.currentTime = 0;
+      statusSound.play().catch(err => console.warn("⚠️ Status-Ton konnte nicht abgespielt werden:", err));
+
+      // Direkt den Text anzeigen
       subText.textContent = textDescription;
     }
   } catch (err) {
-    console.error("❌ Fehler:", err);
+    console.error("❌ Netzwerkfehler:", err);
   }
 }
 
-// Keypad Press Handlers
+// --- Logik für 2 Sekunden langes Halten der Zifferntasten (0-9) ---
 for (let i = 0; i <= 9; i++) {
   const btn = document.getElementById(`btn-action${i}`);
   if (!btn) continue;
@@ -383,10 +396,10 @@ for (let i = 0; i <= 9; i++) {
     holdTimer = setTimeout(() => {
       sendStatusToSupabase(i);
       holdTimer = null;
-    }, 1500);
+    }, 2000);
   };
 
-  const cancelHold = () => {
+  const cancelHold = (e) => {
     if (holdTimer) {
       clearTimeout(holdTimer);
       holdTimer = null;
@@ -396,178 +409,35 @@ for (let i = 0; i <= 9; i++) {
   btn.addEventListener('mousedown', startHold);
   btn.addEventListener('mouseup', cancelHold);
   btn.addEventListener('mouseleave', cancelHold);
+  
   btn.addEventListener('touchstart', startHold);
   btn.addEventListener('touchend', cancelHold);
   btn.addEventListener('touchcancel', cancelHold);
 }
 
-// --- REALISTISCHE SYNTHETISCHE AUDIO-EFFEKTE (Web Audio API) ---
+// --- WebRTC / Audio State ---
 let audioCtx, localStream, filteredStream, audioTrack;
 let audioReady = false; 
 const pcs = {}; 
 const myId = fahrzeug;
 const ws = new WebSocket("wss://lstsim.onrender.com");
 
+const talkSound = new Audio("Funken.wav");
 let channelBusy = false;
 let deviceOn = false;
-let pttRequested = false;
-let totTimer = null; // Time-out-timer
+
 let pendingUsers = [];
 
-function initAudioContext() {
-  if (!audioCtx) {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function makeTetraDistortionCurve() {
+  const n = 44100;
+  const curve = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    const x = i * 2 / n - 1;
+    curve[i] = Math.tanh(x * 1.5);
   }
+  return curve;
 }
 
-// Boot- & End-of-Call Sound (Aufsteigender Chime)
-function playBootTone() {
-  initAudioContext();
-  const now = audioCtx.currentTime;
-  
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-
-  osc.type = 'sine';
-  osc.frequency.setValueAtTime(523.25, now);        // C5
-  osc.frequency.setValueAtTime(659.25, now + 0.12); // E5
-  osc.frequency.setValueAtTime(783.99, now + 0.24); // G5
-  
-  gain.gain.setValueAtTime(0, now);
-  gain.gain.linearRampToValueAtTime(0.15, now + 0.02);
-  gain.gain.setValueAtTime(0.15, now + 0.35);
-  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
-
-  osc.connect(gain);
-  gain.connect(audioCtx.destination);
-
-  osc.start(now);
-  osc.stop(now + 0.5);
-}
-
-// Notruf-Alarm (3 kurze, prägnante TETRA-Pips)
-function playEmergencyAlarm() {
-  initAudioContext();
-  const now = audioCtx.currentTime;
-
-  [0, 0.12, 0.24].forEach((delay) => {
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(1560, now + delay);
-
-    gain.gain.setValueAtTime(0.2, now + delay);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.08);
-
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-
-    osc.start(now + delay);
-    osc.stop(now + delay + 0.08);
-  });
-}
-
-// 1. TETRA Freigabeton (Kanal-Zuteilung "Gong")
-function playGrantTone() {
-  initAudioContext();
-  const now = audioCtx.currentTime;
-  
-  const osc1 = audioCtx.createOscillator();
-  const osc2 = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-
-  osc1.type = 'sine';
-  osc2.type = 'sine';
-
-  osc1.frequency.setValueAtTime(900, now);
-  osc1.frequency.setValueAtTime(1200, now + 0.08);
-  
-  gain.gain.setValueAtTime(0, now);
-  gain.gain.linearRampToValueAtTime(0.15, now + 0.01);
-  gain.gain.setValueAtTime(0.15, now + 0.15);
-  gain.gain.linearRampToValueAtTime(0, now + 0.18);
-
-  osc1.connect(gain);
-  gain.connect(audioCtx.destination);
-
-  osc1.start(now);
-  osc1.stop(now + 0.18);
-}
-
-// 2. Belegtton (Kanal besetzt)
-function playBusyTone() {
-  initAudioContext();
-  const now = audioCtx.currentTime;
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-
-  osc.type = 'square';
-  osc.frequency.setValueAtTime(450, now);
-
-  gain.gain.setValueAtTime(0.1, now);
-  gain.gain.setValueAtTime(0, now + 0.1);
-  gain.gain.setValueAtTime(0.1, now + 0.2);
-  gain.gain.setValueAtTime(0, now + 0.3);
-
-  osc.connect(gain);
-  gain.connect(audioCtx.destination);
-
-  osc.start(now);
-  osc.stop(now + 0.3);
-}
-
-// 3. Squelch Tail (Digitales Entrauschen beim Auflegen)
-function playSquelchTail() {
-  initAudioContext();
-  const bufferSize = audioCtx.sampleRate * 0.06; // 60ms Rauschen
-  const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-  const data = buffer.getChannelData(0);
-
-  for (let i = 0; i < bufferSize; i++) {
-    data[i] = Math.random() * 2 - 1;
-  }
-
-  const noise = audioCtx.createBufferSource();
-  noise.buffer = buffer;
-
-  const filter = audioCtx.createBiquadFilter();
-  filter.type = 'bandpass';
-  filter.frequency.value = 1800;
-  filter.Q.value = 1.2;
-
-  const gain = audioCtx.createGain();
-  gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.06);
-
-  noise.connect(filter);
-  filter.connect(gain);
-  gain.connect(audioCtx.destination);
-
-  noise.start();
-}
-
-// 4. Status Quittungston
-function playStatusTone() {
-  initAudioContext();
-  const now = audioCtx.currentTime;
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-
-  osc.type = 'sine';
-  osc.frequency.setValueAtTime(1400, now);
-  
-  gain.gain.setValueAtTime(0.12, now);
-  gain.gain.linearRampToValueAtTime(0, now + 0.1);
-
-  osc.connect(gain);
-  gain.connect(audioCtx.destination);
-
-  osc.start(now);
-  osc.stop(now + 0.1);
-}
-
-// --- TETRA ACELP CODEC & DSP FILTER KETTE ---
 async function initAudio() {
   if (filteredStream) return;
   try {
@@ -576,73 +446,50 @@ async function initAudio() {
         noiseSuppression: true, 
         echoCancellation: true, 
         autoGainControl: true,
-        sampleRate: 16000 
+        sampleRate: 8000 
       }
     });
   } catch (err) {
-    console.error("❌ Mikrofon-Fehler:", err);
+    console.error("❌ Fehler beim Mikrofon-Zugriff:", err);
     return;
   }
 
-  initAudioContext();
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   const source = audioCtx.createMediaStreamSource(localStream);
 
-  const hpFilter1 = audioCtx.createBiquadFilter();
-  hpFilter1.type = "highpass";
-  hpFilter1.frequency.value = 380;
+  const hpFilter = audioCtx.createBiquadFilter();
+  hpFilter.type = "highpass";
+  hpFilter.frequency.value = 400;
 
-  const hpFilter2 = audioCtx.createBiquadFilter();
-  hpFilter2.type = "highpass";
-  hpFilter2.frequency.value = 380;
+  const lpFilter = audioCtx.createBiquadFilter();
+  lpFilter.type = "lowpass";
+  lpFilter.frequency.value = 2800;
 
-  const lpFilter1 = audioCtx.createBiquadFilter();
-  lpFilter1.type = "lowpass";
-  lpFilter1.frequency.value = 3100;
-
-  const lpFilter2 = audioCtx.createBiquadFilter();
-  lpFilter2.type = "lowpass";
-  lpFilter2.frequency.value = 3100;
-
-  const bodyBoost = audioCtx.createBiquadFilter();
-  bodyBoost.type = "peaking";
-  bodyBoost.frequency.value = 1400;
-  bodyBoost.Q.value = 1.2;
-  bodyBoost.gain.value = 4.0;
-
-  const clarityBoost = audioCtx.createBiquadFilter();
-  clarityBoost.type = "peaking";
-  clarityBoost.frequency.value = 2600;
-  clarityBoost.Q.value = 2.0;
-  clarityBoost.gain.value = 6.0;
-
-  const distortion = audioCtx.createWaveShaper();
-  const n = 2048;
-  const curve = new Float32Array(n);
-  for (let i = 0; i < n; i++) {
-    let x = (i * 2) / n - 1;
-    let saturated = Math.tanh(x * 1.8);
-    curve[i] = Math.round(saturated * 48) / 48; 
-  }
-  distortion.curve = curve;
+  const presenceFilter = audioCtx.createBiquadFilter();
+  presenceFilter.type = "peaking";
+  presenceFilter.frequency.value = 2000;
+  presenceFilter.Q.value = 2.0;
+  presenceFilter.gain.value = 6.0;
 
   const compressor = audioCtx.createDynamicsCompressor();
-  compressor.threshold.value = -22;
-  compressor.knee.value = 4;
-  compressor.ratio.value = 10;
+  compressor.threshold.value = -24;
+  compressor.knee.value = 10;
+  compressor.ratio.value = 12;
   compressor.attack.value = 0.003;
-  compressor.release.value = 0.08;
+  compressor.release.value = 0.25;
 
-  source.connect(hpFilter1);
-  hpFilter1.connect(hpFilter2);
-  hpFilter2.connect(bodyBoost);
-  bodyBoost.connect(clarityBoost);
-  clarityBoost.connect(distortion);
-  distortion.connect(lpFilter1);
-  lpFilter1.connect(lpFilter2);
-  lpFilter2.connect(compressor);
+  const distortion = audioCtx.createWaveShaper();
+  distortion.curve = makeTetraDistortionCurve();
+  distortion.oversample = '2x';
+
+  source.connect(hpFilter);
+  hpFilter.connect(compressor);
+  compressor.connect(presenceFilter);
+  presenceFilter.connect(distortion);
+  distortion.connect(lpFilter);
 
   const destination = audioCtx.createMediaStreamDestination();
-  compressor.connect(destination);
+  lpFilter.connect(destination);
   filteredStream = destination.stream;
 
   audioTrack = filteredStream.getAudioTracks()[0];
@@ -680,6 +527,7 @@ function createPeerConnection(peerId, isInitiator) {
       document.body.appendChild(audioEl);
     }
     audioEl.srcObject = e.streams[0];
+    audioEl.play().catch(err => console.warn(`⚠️ Autoplay blockiert:`, err));
   };
 
   pc.onicecandidate = e => {
@@ -698,7 +546,9 @@ function createPeerConnection(peerId, isInitiator) {
         ws.send(JSON.stringify({
           type: "signal", room, to: peerId, from: myId, payload: { sdp: offer }
         }));
-      } catch (err) {}
+      } catch (err) {
+        console.error("Fehler beim Offer:", err);
+      }
     };
   }
 
@@ -758,44 +608,28 @@ ws.onmessage = async (event) => {
     channelBusy = true;
     if (deviceOn) {
       setDisplayText(msg.holder);
+      setLedState("blue");
       if (msg.holder === myId) {
-        playGrantTone();
-        setLedState("red");
-        subText.textContent = "TX (Senden)";
+        subText.textContent = "Senden...";
         radioStateIcon.textContent = "TX";
-
-        setTimeout(() => {
-          if (pttRequested && audioTrack) {
-            audioTrack.enabled = true;
-          }
-        }, 180);
-
-        totTimer = setTimeout(() => {
-          stopTalking();
-        }, 30000);
-
       } else {
-        setLedState("blue");
-        subText.textContent = "RX (Empfang)";
+        subText.textContent = "Empfang...";
         radioStateIcon.textContent = "RX";
       }
     }
   }
-
   if (msg.type === "unlock") {
     channelBusy = false;
     if (deviceOn) {
-      playSquelchTail();
-      playBootTone(); // Zentraler Sound beim Entriegeln des Kanals (nur 1x)
       setDisplayText(room);
       radioStateIcon.textContent = "IDLE";
       setLedState("standby");
+      // Nach dem Funken holen wir den echten Status frisch aus der DB zurück
       fetchAndDisplayStatus();
     }
   }
 };
 
-// Power Sequence
 const btnPower = document.getElementById('btn-actionAus');
 let powerTimer = null;
 
@@ -817,6 +651,7 @@ async function powerOnSequence() {
     await audioCtx.resume();
   }
 
+  // Sobald das Gerät hochgefahren ist, laden wir den Status direkt aus der Datenbank
   await fetchAndDisplayStatus();
 
   setTimeout(() => {
@@ -827,8 +662,7 @@ async function powerOnSequence() {
     setDisplayText(room);
     radioStateIcon.textContent = "IDLE";
     setLedState("standby");
-    playBootTone(); // Boot Sound beim Hochfahren
-  }, 4000);
+  }, 5000);
 }
 
 function updateClock() {
@@ -840,46 +674,43 @@ function updateClock() {
 setInterval(updateClock, 1000);
 updateClock();
 
-// --- PTT / FUNK-ABLAUF ---
 const btnPTT = document.getElementById('btn-actionRuf');
 
 function startTalking() {
-  if (!deviceOn) return;
+  if (!deviceOn || channelBusy) return;
 
-  if (channelBusy) {
-    playBusyTone();
-    return;
+  if (audioTrack) {
+    audioTrack.enabled = true;
   }
-
-  pttRequested = true;
-  setLedState("yellow");
-  subText.textContent = "Kanalruf...";
 
   ws.send(JSON.stringify({ type: "request_lock", room, from: myId }));
+  radioStateIcon.textContent = "TX";
+  subText.textContent = "Senden...";
+  setLedState("blue");
+
+  talkSound.currentTime = 0;
+  talkSound.play().catch(()=>{});
 }
 
-function stopTalking() {
-  if (!deviceOn || !pttRequested) return;
+const endSound = new Audio("ende.wav");
 
-  pttRequested = false;
-  if (totTimer) {
-    clearTimeout(totTimer);
-    totTimer = null;
-  }
+function stopTalking() {
+  if (!deviceOn) return;
 
   if (audioTrack) {
     audioTrack.enabled = false;
   }
 
   ws.send(JSON.stringify({ type: "release_lock", room, from: myId }));
-  
-  // playBootTone() hier entfernt, damit es durch das Server-Unlock-Signal nur 1x kommt!
-
   setDisplayText(room);
   radioStateIcon.textContent = "IDLE";
   setLedState("standby");
 
+  // Datenbank-Status nach dem Sprechen wiederherstellen
   fetchAndDisplayStatus();
+
+  endSound.currentTime = 0;
+  endSound.play().catch(()=>{});
 }
 
 btnPTT.addEventListener('mousedown', startTalking);
@@ -887,12 +718,14 @@ btnPTT.addEventListener('mouseup', stopTalking);
 btnPTT.addEventListener('touchstart', (e) => { e.preventDefault(); startTalking(); });
 btnPTT.addEventListener('touchend', (e) => { e.preventDefault(); stopTalking(); });
 
+// --- Fahrzeug beim Schließen des Sepura-Fensters freigeben ---
 window.addEventListener('pagehide', async () => {
   if (!fahrzeug) return;
-  await supabaseClient
-    .from('fahrzeuge')
-    .update({ besetzt: false })
-    .eq('name', fahrzeug);
+  
+    await supabaseClient
+      .from('fahrzeuge')
+      .update({ besetzt: false })
+      .eq('name', fahrzeug);
 });
 </script>
 </body>
