@@ -398,6 +398,20 @@
   let selectedVehicles = new Set();
   let currentEinsatzId = null;
 
+  /* --- WEBRTC TELEFONIE (NOTRUFE ÜBER SUPABASE) VARIABLEN --- */
+  let activeCallChannel = null;
+  let callPeerConnection = null;
+  let callLocalStream = null;
+  let callRemoteAudio = null;
+  let activeCallId = null;
+
+  const rtcPhoneConfig = {
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' }
+    ]
+  };
+
   /* --- KLINGELTON SYNTHESIZER (Web Audio API) --- */
   let ringAudioCtx = null;
   let ringInterval = null;
@@ -557,7 +571,7 @@
     });
   }
 
-  /* ANRUFERLISTE: OHNE "ÜBERNEHMEN"-KNOPF */
+  /* ANRUFERLISTE MIT TELEFONIE-INTEGRATION */
   async function loadAnruferliste() {
     const { data: anrufe, error } = await db
       .from('anrufe')
@@ -582,7 +596,7 @@
       return;
     }
 
-    const hasAktivCalls = anrufe.some(c => c.status === 'aktiv');
+    const hasAktivCalls = anrufe.some(c => c.status === 'aktiv' || c.status === 'klingelt');
     manageRingtone(hasAktivCalls);
 
     countBadge.textContent = `${anrufe.length} Aktiv`;
@@ -596,7 +610,7 @@
       if (call.status === 'halten') badgeText = '⏸️ IN WARTESCHLEIFE';
       if (call.status === 'angenommen') badgeText = '📞 VERBUNDEN';
 
-      const callerNum = escapeHtml(call.anrufer_nummer || '');
+      const callerNum = escapeHtml(call.anrufer_nummer || call.rufer_nummer || '');
 
       item.innerHTML = `
         <div class="call-info">
@@ -619,17 +633,136 @@
     loadAnruferliste();
   }
 
-  /* AUTOMATISCHES ÜBERTRAGEN DER NUMMER BEIM ANNEHMEN */
-  async function acceptCall(callId, callerNum = "") {
-    if (callerNum) {
-      document.getElementById('melder').value = callerNum;
-    }
-    await db.from('anrufe').update({ status: 'angenommen' }).eq('id', callId);
-    loadAnruferliste();
+  /* AUTOMATISCHES ÜBERTRAGEN DER NUMMER BEIM ANNEHMEN & WEBRTC NOTRUF STARTEN */
+  /* AUTOMATISCHES ÜBERTRAGEN DER NUMMER BEIM ANNEHMEN & WEBRTC NOTRUF STARTEN */
+async function acceptCall(callId, callerNum = "") {
+  if (callerNum) {
+    document.getElementById('melder').value = callerNum;
+  }
+  
+  activeCallId = callId;
+
+  // 1. Status in Supabase auf 'angenommen' setzen
+  await db.from('anrufe').update({ status: 'angenommen' }).eq('id', callId);
+
+  // 2. Mikrofon der Leitstelle anfordern
+  try {
+    callLocalStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+  } catch (err) {
+    console.error("Fehler beim Mikrofon-Zugriff der LST:", err);
+    alert("Mikrofon-Zugriff erforderlich für Telefonat!");
+    return;
   }
 
+  // 3. RTCPeerConnection für Anruf aufbauen
+  callPeerConnection = new RTCPeerConnection(rtcPhoneConfig);
+
+  callLocalStream.getTracks().forEach(track => {
+    callPeerConnection.addTrack(track, callLocalStream);
+  });
+
+  // Remote Audio vom Handy empfangen und mit TELEFON-FILTER versehen
+  callPeerConnection.ontrack = (event) => {
+    // Web Audio Context für Telefon-Sound erzeugen
+    const phoneAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const source = phoneAudioCtx.createMediaStreamSource(event.streams[0]);
+
+    // 1. High-Pass Filter: Schneidet tiefe Bässe/Rumpeln unter 300 Hz ab
+    const hpFilter = phoneAudioCtx.createBiquadFilter();
+    hpFilter.type = "highpass";
+    hpFilter.frequency.value = 300;
+
+    // 2. Low-Pass Filter: Schneidet hohe Frequenzen über 3400 Hz ab (typischer ISDN/POTS Sound)
+    const lpFilter = phoneAudioCtx.createBiquadFilter();
+    lpFilter.type = "lowpass";
+    lpFilter.frequency.value = 3400;
+
+    // 3. Mitten-Anhebung (Peaking): Leichtes Anheben der Sprachpräsenz bei 1000 Hz für "Telefon-Klang"
+    const presence = phoneAudioCtx.createBiquadFilter();
+    presence.type = "peaking";
+    presence.frequency.value = 1000;
+    presence.Q.value = 1.0;
+    presence.gain.value = 4.0;
+
+    // 4. Kompressor: Drückt laute Spitzen weg und hebt leise Töne an (wie eine Telefonleitung)
+    const compressor = phoneAudioCtx.createDynamicsCompressor();
+    compressor.threshold.value = -20;
+    compressor.knee.value = 6;
+    compressor.ratio.value = 8;
+    compressor.attack.value = 0.005;
+    compressor.release.value = 0.05;
+
+    // Signalkette verbinden: Stream -> HighPass -> LowPass -> Mitten -> Kompressor -> Lautsprecher
+    source.connect(hpFilter);
+    hpFilter.connect(lpFilter);
+    lpFilter.connect(presence);
+    presence.connect(compressor);
+    compressor.connect(phoneAudioCtx.destination);
+  };
+
+  // ICE Candidates an das Handy über Supabase senden
+  callPeerConnection.onicecandidate = (event) => {
+    if (event.candidate && activeCallChannel) {
+      activeCallChannel.send({
+        type: 'broadcast',
+        event: 'signal',
+        payload: { candidate: event.candidate, sender: 'lst' }
+      });
+    }
+  };
+
+  // 4. Supabase Signalisierungs-Kanal für den Anruf abonnieren
+  activeCallChannel = db.channel('call-' + callId)
+    .on('broadcast', { event: 'signal' }, async ({ payload }) => {
+      if (payload.sender === 'lst') return;
+
+      if (payload.offer && callPeerConnection) {
+        await callPeerConnection.setRemoteDescription(new RTCSessionDescription(payload.offer));
+        const answer = await callPeerConnection.createAnswer();
+        await callPeerConnection.setLocalDescription(answer);
+
+        activeCallChannel.send({
+          type: 'broadcast',
+          event: 'signal',
+          payload: { answer: answer, sender: 'lst' }
+        });
+      } 
+      else if (payload.candidate && callPeerConnection) {
+        await callPeerConnection.addIceCandidate(new RTCIceCandidate(payload.candidate));
+      }
+    })
+    .subscribe();
+
+  loadAnruferliste();
+}
+
+  /* NOTRUF AUFLEGEN & WEBRTC TRENNEN */
   async function hangupCall(callId) {
     await db.from('anrufe').update({ status: 'beendet' }).eq('id', callId);
+
+    if (callPeerConnection) {
+      callPeerConnection.close();
+      callPeerConnection = null;
+    }
+
+    if (callLocalStream) {
+      callLocalStream.getTracks().forEach(track => track.stop());
+      callLocalStream = null;
+    }
+
+    if (callRemoteAudio) {
+      callRemoteAudio.pause();
+      callRemoteAudio.srcObject = null;
+      callRemoteAudio.remove();
+      callRemoteAudio = null;
+    }
+
+    if (activeCallChannel) {
+      db.removeChannel(activeCallChannel);
+      activeCallChannel = null;
+    }
+
+    activeCallId = null;
     loadAnruferliste();
   }
 
@@ -718,7 +851,7 @@
       });
   }
 
-  // --- WEBRTC / AUDIO LOGIK FÜR DIE LEITSTELLE ---
+  // --- WEBRTC / AUDIO LOGIK FÜR FUNKBEDIENUNG (WEBSOCKET) ---
   const myId = "LST SB";
   let room = "DN_ALLG";
   let audioCtx, localStream, filteredStream, audioTrack;
@@ -746,7 +879,7 @@
         audio: { noiseSuppression: true, echoCancellation: true, autoGainControl: true, sampleRate: 8000 }
       });
     } catch (err) {
-      console.error("❌ Fehler beim Mikrofon-Zugriff:", err);
+      console.error("❌ Fehler beim Mikrofon-Zugriff (Funk):", err);
       return;
     }
 
@@ -893,17 +1026,23 @@
     if (msg.type === "lock_granted") {
       channelBusy = true;
       if (msg.holder === myId) {
-        statusDiv.textContent = "🎙️ Du sprichst (gesendet)";
-        statusDiv.style.color = "#ff3b30";
+        if (statusDiv) {
+          statusDiv.textContent = "🎙️ Du sprichst (gesendet)";
+          statusDiv.style.color = "#ff3b30";
+        }
       } else {
-        statusDiv.textContent = `🔊 ${msg.holder} spricht...`;
-        statusDiv.style.color = "#ffcc00";
+        if (statusDiv) {
+          statusDiv.textContent = `🔊 ${msg.holder} spricht...`;
+          statusDiv.style.color = "#ffcc00";
+        }
       }
     }
     if (msg.type === "unlock") {
       channelBusy = false;
-      statusDiv.textContent = "Kanal frei";
-      statusDiv.style.color = "#8a8f9e";
+      if (statusDiv) {
+        statusDiv.textContent = "Kanal frei";
+        statusDiv.style.color = "#8a8f9e";
+      }
     }
   };
 
@@ -937,9 +1076,13 @@
       document.querySelectorAll(".einsatz-item").forEach(x => x.classList.remove("selected-einsatz"));
     });
 
-    document.getElementById("btn_dn_allg").addEventListener("click", (e) => switchRoom("DN_ALLG", e.target));
-    document.getElementById("btn_dn_fw").addEventListener("click", (e) => switchRoom("DN_FW", e.target));
-    document.getElementById("btn_dn_pol").addEventListener("click", (e) => switchRoom("DN_POL", e.target));
+    const btnDnAllg = document.getElementById("btn_dn_allg");
+    const btnDnFw = document.getElementById("btn_dn_fw");
+    const btnDnPol = document.getElementById("btn_dn_pol");
+
+    if (btnDnAllg) btnDnAllg.addEventListener("click", (e) => switchRoom("DN_ALLG", e.target));
+    if (btnDnFw) btnDnFw.addEventListener("click", (e) => switchRoom("DN_FW", e.target));
+    if (btnDnPol) btnDnPol.addEventListener("click", (e) => switchRoom("DN_POL", e.target));
 
     const pttBtn = document.getElementById("btn_ptt");
 
@@ -954,7 +1097,7 @@
       }
 
       ws.send(JSON.stringify({ type: "request_lock", room, from: myId }));
-      pttBtn.style.backgroundColor = "#ff3b30";
+      if (pttBtn) pttBtn.style.backgroundColor = "#ff3b30";
 
       talkSound.currentTime = 0;
       talkSound.play().catch(()=>{});
@@ -966,16 +1109,18 @@
       }
 
       ws.send(JSON.stringify({ type: "release_lock", room, from: myId }));
-      pttBtn.style.backgroundColor = "";
+      if (pttBtn) pttBtn.style.backgroundColor = "";
 
       endSound.currentTime = 0;
       endSound.play().catch(()=>{});
     }
 
-    pttBtn.addEventListener("mousedown", startTalkingLST);
-    pttBtn.addEventListener("mouseup", stopTalkingLST);
-    pttBtn.addEventListener("touchstart", (e) => { e.preventDefault(); startTalkingLST(); });
-    pttBtn.addEventListener("touchend", (e) => { e.preventDefault(); stopTalkingLST(); });
+    if (pttBtn) {
+      pttBtn.addEventListener("mousedown", startTalkingLST);
+      pttBtn.addEventListener("mouseup", stopTalkingLST);
+      pttBtn.addEventListener("touchstart", (e) => { e.preventDefault(); startTalkingLST(); });
+      pttBtn.addEventListener("touchend", (e) => { e.preventDefault(); stopTalkingLST(); });
+    }
   });
 </script>
 

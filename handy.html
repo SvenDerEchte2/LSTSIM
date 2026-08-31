@@ -7,7 +7,7 @@
 <!-- Supabase Client -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-  html, body {
+    html, body {
     margin: 0;
     padding: 0;
     height: 100%;
@@ -69,6 +69,7 @@
     padding: 30px 16px 8px 16px;
     box-sizing: border-box;
     position: relative;
+    overflow: hidden;
   }
 
   /* Statusleiste */
@@ -80,6 +81,7 @@
     font-weight: 600;
     margin-bottom: 5px;
     padding: 0 4px;
+    flex-shrink: 0;
   }
 
   /* Eigenes Nummer-Badge auf dem Home-Screen */
@@ -101,9 +103,14 @@
     display: none;
     flex-direction: column;
     flex: 1;
+    overflow-y: auto;
+    box-sizing: border-box;
   }
   .view.active {
     display: flex !important;
+  }
+  .view::-webkit-scrollbar {
+    width: 0px;
   }
 
   /* Home-Screen */
@@ -137,6 +144,9 @@
     justify-content: center;
     box-shadow: 0 6px 12px rgba(0,0,0,0.4), inset 0 1px 1px rgba(255,255,255,0.4);
     transition: transform 0.1s;
+  }
+  .app-icon.tinder-icon {
+    background: linear-gradient(135deg, #fd267d, #ff6036);
   }
   .app-item:active .app-icon {
     transform: scale(0.9);
@@ -291,7 +301,6 @@
     margin-top: 6px;
   }
 
-  /* Anruf Aktions-Buttons */
   .call-actions-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -361,6 +370,178 @@
     transform: scale(0.92);
   }
 
+  /* --- BLITZBEGEGNUNG STYLES --- */
+  .tinder-header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    margin-bottom: 8px;
+  }
+  .tinder-logo {
+    font-weight: 800;
+    font-size: 15px;
+    background: linear-gradient(135deg, #fd267d, #ff6036);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* Formular Account anlegen */
+  .tinder-form {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-top: 2px;
+  }
+  .tinder-input, .tinder-select {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 8px;
+    padding: 6px 8px;
+    color: #fff;
+    font-size: 11px;
+    outline: none;
+  }
+  .tinder-select option {
+    background: #1e222d;
+    color: #fff;
+  }
+  .tinder-input::placeholder { color: rgba(255,255,255,0.4); }
+  .tinder-file-label {
+    background: rgba(255,255,255,0.1);
+    border: 1px dashed rgba(255,255,255,0.3);
+    border-radius: 8px;
+    padding: 8px;
+    text-align: center;
+    font-size: 10px;
+    cursor: pointer;
+    color: rgba(255,255,255,0.8);
+  }
+  .tinder-submit-btn {
+    background: linear-gradient(135deg, #fd267d, #ff6036);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 11px;
+    margin-top: 4px;
+  }
+
+  /* Swipe Karte */
+  .tinder-card-container {
+    flex: 1;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 5px;
+  }
+  .tinder-card {
+    width: 100%;
+    height: 280px;
+    background: #1e222d;
+    border-radius: 16px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+  .tinder-card img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .tinder-card-gradient {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 70%;
+    background: linear-gradient(to top, rgba(0,0,0,0.95) 10%, rgba(0,0,0,0.4) 60%, transparent);
+    z-index: 1;
+  }
+  .tinder-card-info {
+    position: relative;
+    z-index: 2;
+    padding: 10px;
+  }
+  .tinder-card-name {
+    font-size: 16px;
+    font-weight: bold;
+  }
+  .tinder-card-sub {
+    font-size: 10px;
+    color: #ff6036;
+    margin-top: 1px;
+    font-weight: 500;
+  }
+  .tinder-card-details {
+    font-size: 10px;
+    color: rgba(255,255,255,0.85);
+    margin-top: 3px;
+    line-height: 1.2;
+  }
+  .tinder-card-tag {
+    display: inline-block;
+    background: rgba(255,255,255,0.15);
+    padding: 2px 6px;
+    border-radius: 6px;
+    font-size: 9px;
+    margin-top: 4px;
+    margin-right: 3px;
+  }
+  .tinder-actions {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    margin-top: 4px;
+  }
+  .tinder-action-btn {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    border: none;
+    background: #1e222d;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    cursor: pointer;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.1s;
+  }
+  .tinder-action-btn:active { transform: scale(0.9); }
+  .btn-nope { color: #ff3b30; }
+  .btn-like { color: #34c759; }
+
+  /* Eigenes Profil Info Ansicht */
+  .my-profile-box {
+    background: rgba(255,255,255,0.05);
+    border-radius: 12px;
+    padding: 8px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+  .my-profile-img {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #fd267d;
+  }
+
   /* Home Indicator Strich */
   .home-indicator-bar {
     width: 100%;
@@ -409,11 +590,21 @@
           </div>
           <span class="app-title">Telefon</span>
         </div>
+
+        <!-- Blitzbegegnung App Icon -->
+        <div class="app-item" onclick="openTinderApp()">
+          <div class="app-icon tinder-icon">
+            <svg viewBox="0 0 24 24">
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+          </div>
+          <span class="app-title">Blitzbegegnung</span>
+        </div>
       </div>
     </div>
 
-    <!-- ANSICHT 2: Moderner Dialer -->
-    <div id="dialer-view" class="view dialer-screen">
+    <!-- ANSICHT 2: Moderner Dialer + Kontakte & Historie -->
+    <div id="dialer-view" class="view dialer-screen" style="overflow-y: auto;">
       <div class="dialer-top">
         <div class="phone-display-container">
           <div id="dialed-number" class="phone-display"></div>
@@ -441,13 +632,25 @@
           <svg style="width:24px;height:24px;fill:#fff;" viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
         </button>
       </div>
+
+      <!-- ZUSATZ: Kontakte & Letzte Anrufe -->
+      <div style="padding: 10px; margin-top: 10px; border-top: 1px solid #333; font-size: 12px; text-align: left;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <strong style="color: #fff;">📖 Kontakte</strong>
+          <button onclick="addContact()" style="background: #34c759; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 10px;">➕ Neu</button>
+        </div>
+        <div id="contacts-list" style="margin-bottom: 15px;"></div>
+
+        <strong style="color: #fff; display: block; margin-bottom: 8px;">🕒 Anrufverlauf</strong>
+        <div id="history-list"></div>
+      </div>
     </div>
 
     <!-- ANSICHT 3: Aktiver Anruf -->
     <div id="call-view" class="view active-call-screen">
       <div>
-        <div style="font-size: 13px; color: rgba(255,255,255,0.6); font-weight: 500; margin-top: 10px;">Notruf-Zentrale</div>
-        <div id="called-display-number" style="font-size: 26px; font-weight: bold; letter-spacing: 1px; margin-top: 4px;">112</div>
+        <div style="font-size: 13px; color: rgba(255,255,255,0.6); font-weight: 500; margin-top: 10px;">Telefonat</div>
+        <div id="called-display-number" style="font-size: 26px; font-weight: bold; letter-spacing: 1px; margin-top: 4px;">---</div>
         <div id="call-status-text" style="font-size: 14px; color: #34c759; font-weight: 500; margin-top: 6px;">Verbinde...</div>
         <div id="call-timer" class="call-timer">00:00</div>
       </div>
@@ -488,6 +691,82 @@
       </div>
     </div>
 
+    <!-- ANSICHT 4: Blitzbegegnung (Tinder App) -->
+    <div id="tinder-view" class="view">
+      <div class="tinder-header">
+        <span class="tinder-logo">🔥 Blitzbegegnung</span>
+      </div>
+
+      <!-- Sektion A: Wenn KEIN Account existiert -->
+      <div id="tinder-create-section" style="display: none;" class="tinder-form">
+        <div style="font-size: 10px; color: rgba(255,255,255,0.7); text-align: center;">Erstelle dein Dating-Profil!</div>
+        
+        <input type="text" id="t-name" class="tinder-input" placeholder="Dein Name">
+        
+        <div style="display: flex; gap: 4px;">
+          <input type="number" id="t-age" class="tinder-input" placeholder="Alter" style="width: 50%;">
+          <input type="text" id="t-city" class="tinder-input" placeholder="Wohnort" style="width: 50%;">
+        </div>
+
+        <div style="display: flex; gap: 4px;">
+          <select id="t-gender" class="tinder-select" style="width: 50%;">
+            <option value="" disabled selected>Ich bin...</option>
+            <option value="Mann">Mann</option>
+            <option value="Frau">Frau</option>
+            <option value="Divers">Divers</option>
+          </select>
+          <select id="t-seeking" class="tinder-select" style="width: 50%;">
+            <option value="" disabled selected>Suche...</option>
+            <option value="Frauen">Frauen</option>
+            <option value="Männer">Männer</option>
+            <option value="Alle">Alle</option>
+          </select>
+        </div>
+
+        <input type="text" id="t-hobbies" class="tinder-input" placeholder="Hobbys (z.B. Sport, Musik, Gaming)">
+        <textarea id="t-bio" class="tinder-input" placeholder="Über mich / Bio..." rows="2" style="resize:none;"></textarea>
+        
+        <label class="tinder-file-label">
+          📷 Profilbild wählen
+          <input type="file" id="t-file" accept="image/*" style="display: none;">
+        </label>
+        <div id="t-file-name" style="font-size: 9px; color: #34c759; text-align: center; margin-top: -2px;"></div>
+
+        <button class="tinder-submit-btn" onclick="createTinderProfile()">Profil erstellen</button>
+      </div>
+
+      <!-- Sektion B: Wenn BEREITS ein Account existiert -->
+      <div id="tinder-swipe-section" style="display: none; flex: 1; flex-direction: column;">
+        
+        <div id="tinder-deck" style="display: flex; flex-direction: column; flex: 1; justify-content: space-between;">
+          <div class="tinder-card-container" id="tinder-card-box"></div>
+          <div class="tinder-actions">
+            <button class="tinder-action-btn btn-nope" onclick="nextCard()">❌</button>
+            <button class="tinder-action-btn btn-like" onclick="nextCard()">💚</button>
+          </div>
+        </div>
+
+        <div id="tinder-empty" style="display: none; flex: 1; align-items: center; justify-content: center; text-align: center; font-size: 11px; color: rgba(255,255,255,0.6);">
+          Keine weiteren Profile in deiner Nähe!
+        </div>
+
+        <div style="margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.1);">
+          <div class="my-profile-box">
+            <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
+              <img id="my-tinder-img" class="my-profile-img" src="" alt="">
+              <div style="text-align: left; overflow: hidden; flex: 1;">
+                <div style="font-size: 12px; font-weight: bold;" id="my-tinder-name">Name</div>
+                <div style="font-size: 9px; color: #ff6036;" id="my-tinder-details">Details...</div>
+              </div>
+            </div>
+            <button onclick="deleteTinderProfile()" style="background: rgba(255,59,48,0.2); border: 1px solid #ff3b30; color: #ff3b30; border-radius: 6px; padding: 4px; font-size: 9px; width: 100%; cursor: pointer; font-weight: bold;">Account löschen (für neuen Account)</button>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
     <!-- Home Indicator -->
     <div class="home-indicator-bar" onclick="openHome()">
       <div class="home-indicator"></div>
@@ -504,11 +783,30 @@
 
   let activeCallId = null;
   let myPhoneNumber = "";
+  let currentAuthUserId = null;
   let callTimerInterval = null;
   let callSeconds = 0;
   let callRealtimeChannel = null;
+  let incomingCallsChannel = null;
   let holdInterval = null;
   let currentCallStatus = null;
+
+  // -- WEBRTC & MEDIA VARIABLEN --
+  let peerConnection = null;
+  let localStream = null;
+  let remoteAudio = null;
+  
+  const rtcConfig = {
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' }
+    ]
+  };
+
+  // Blitzbegegnung Variablen
+  let tinderProfiles = [];
+  let tinderIndex = 0;
+  let myTinderProfile = null;
 
   // Stimmen im Hintergrund initialisieren
   if ('speechSynthesis' in window) {
@@ -538,7 +836,6 @@
     return audioCtx;
   }
 
-  // Schaltet Audio & Speech Synthesis explizit durch Klick frei (Autoplay-Fix)
   function unlockSpeechAndAudio() {
     getAudioContext();
     if ('speechSynthesis' in window) {
@@ -549,7 +846,6 @@
     }
   }
 
-  // DTMF-Tastenton
   function playDTMF(key) {
     const freqs = dtmfFreqs[key];
     if (!freqs) return;
@@ -573,12 +869,9 @@
       osc2.start();
       osc1.stop(ctx.currentTime + 0.12);
       osc2.stop(ctx.currentTime + 0.12);
-    } catch(e) {
-      console.warn("Audio-Fehler:", e);
-    }
+    } catch(e) {}
   }
 
-  // Freizeichen
   function startRingbackTone() {
     stopRingbackTone();
     try {
@@ -599,9 +892,7 @@
       }
       playTone();
       ringInterval = setInterval(playTone, 2500);
-    } catch(e) {
-      console.warn("Freizeichen-Fehler:", e);
-    }
+    } catch(e) {}
   }
 
   function stopRingbackTone() {
@@ -611,7 +902,6 @@
     }
   }
 
-  // -- SPRACHANSAGE FÜR HALTEMODUS (WEB SPEECH API) --
   function playHoldAnnouncement() {
     stopHoldAnnouncement();
     stopRingbackTone();
@@ -622,22 +912,15 @@
     function speakText() {
       if ('speechSynthesis' in window) {
         window.speechSynthesis.resume();
-        window.speechSynthesis.cancel(); // Vorherige Sprache abbrechen
-
-        // Puffer-Delay zur Vermeidung von Race-Conditions
+        window.speechSynthesis.cancel();
         setTimeout(() => {
           const text = "Alle Disponenten sind derzeit belegt. Bitte warten Sie, Ihr Anruf wird gehalten.";
           const utterance = new SpeechSynthesisUtterance(text);
-          
           const voices = window.speechSynthesis.getVoices();
           const germanVoice = voices.find(v => v.lang && v.lang.startsWith('de'));
-          if (germanVoice) {
-            utterance.voice = germanVoice;
-          }
-          
+          if (germanVoice) utterance.voice = germanVoice;
           utterance.lang = 'de-DE';
           utterance.rate = 0.95;
-
           window.speechSynthesis.speak(utterance);
         }, 100);
       }
@@ -667,21 +950,28 @@
     const { data: { session } } = await supabaseClient.auth.getSession();
 
     if (!session) {
-      badge.textContent = "⚠️ Kein Auth-Login!";
+      if (badge) badge.textContent = "⚠️ Kein Auth-Login!";
       return;
     }
+
+    currentAuthUserId = session.user.id;
 
     const { data, error } = await supabaseClient
       .from('benutzer')
       .select('telefonnummer')
-      .eq('id', session.user.id)
+      .eq('id', currentAuthUserId)
       .single();
 
     if (error) {
-      badge.textContent = "📱 Nummer nicht gefunden";
+      if (badge) badge.textContent = "📱 Nummer nicht gefunden";
     } else if (data) {
       myPhoneNumber = data.telefonnummer;
-      badge.textContent = `📱 ${myPhoneNumber}`;
+      if (badge) badge.textContent = `📱 ${myPhoneNumber}`;
+
+      // Listener & Listen für eigene Nummer starten
+      listenForIncomingCalls();
+      loadCallHistory();
+      loadContacts();
     }
   }
 
@@ -692,7 +982,8 @@
     const now = new Date();
     const h = now.getHours().toString().padStart(2, '0');
     const m = now.getMinutes().toString().padStart(2, '0');
-    document.getElementById('phone-clock').textContent = `${h}:${m}`;
+    const clockElem = document.getElementById('phone-clock');
+    if (clockElem) clockElem.textContent = `${h}:${m}`;
   }
   setInterval(updateClock, 1000);
   updateClock();
@@ -700,7 +991,8 @@
   // Navigation
   function switchView(viewId) {
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-    document.getElementById(viewId).classList.add('active');
+    const target = document.getElementById(viewId);
+    if (target) target.classList.add('active');
   }
 
   function openHome() { switchView('home-view'); }
@@ -715,11 +1007,20 @@
   }
 
   function toggleMute() {
-    document.getElementById('btn-mute').classList.toggle('active');
+    const btn = document.getElementById('btn-mute');
+    btn.classList.toggle('active');
+    
+    if (localStream) {
+      const audioTrack = localStream.getAudioTracks()[0];
+      if (audioTrack) {
+        audioTrack.enabled = !btn.classList.contains('active');
+      }
+    }
   }
 
   function toggleSpeaker() {
-    document.getElementById('btn-speaker').classList.toggle('active');
+    const btn = document.getElementById('btn-speaker');
+    if (btn) btn.classList.toggle('active');
   }
 
   let currentNumber = "";
@@ -740,16 +1041,124 @@
   }
 
   function updateDisplay() {
-    display.textContent = currentNumber;
-    deleteBtn.style.display = currentNumber.length > 0 ? 'block' : 'none';
+    if (display) display.textContent = currentNumber;
+    if (deleteBtn) deleteBtn.style.display = currentNumber.length > 0 ? 'block' : 'none';
   }
 
-  // ANRUF STARTEN
-  async function makeCall() {
-    if (!currentNumber) return;
-    
-    // Autoplay-Freischaltung über den direkten Klick
+  // ==========================================
+  // --- WEBRTC & SOUND-FILTER LOGIK ---
+  // ==========================================
+
+  async function setupWebRTC() {
+    try {
+      localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    } catch (err) {
+      console.error("Mikrofon-Zugriff verweigert:", err);
+      alert("Mikrofon-Zugriff wird für Telefonate benötigt!");
+      return false;
+    }
+
+    peerConnection = new RTCPeerConnection(rtcConfig);
+
+    localStream.getTracks().forEach(track => {
+      peerConnection.addTrack(track, localStream);
+    });
+
+    // Remote Audio mit Telefon-Soundfilter verarbeiten
+    peerConnection.ontrack = (event) => {
+      const stream = event.streams[0];
+
+      // Erstelle unsichtbares HTML-Audio Element
+      if (!remoteAudio) {
+        remoteAudio = document.createElement('audio');
+        remoteAudio.autoplay = true;
+      }
+      
+      // Web Audio API Telefon-Filterkette (HighPass, LowPass, Compressor)
+      try {
+        const phoneCtx = getAudioContext();
+        const source = phoneCtx.createMediaStreamSource(stream);
+
+        const hp = phoneCtx.createBiquadFilter();
+        hp.type = "highpass";
+        hp.frequency.value = 300;
+
+        const lp = phoneCtx.createBiquadFilter();
+        lp.type = "lowpass";
+        lp.frequency.value = 3400;
+
+        const compressor = phoneCtx.createDynamicsCompressor();
+        compressor.threshold.value = -20;
+        compressor.ratio.value = 8;
+
+        source.connect(hp);
+        hp.connect(lp);
+        lp.connect(compressor);
+        compressor.connect(phoneCtx.destination);
+      } catch (e) {
+        // Fallback: Direkter Stream ohne Filter bei AudioContext Fehlern
+        remoteAudio.srcObject = stream;
+      }
+    };
+
+    peerConnection.onicecandidate = (event) => {
+      if (event.candidate && callRealtimeChannel) {
+        callRealtimeChannel.send({
+          type: 'broadcast',
+          event: 'signal',
+          payload: { candidate: event.candidate, sender: myPhoneNumber }
+        });
+      }
+    };
+
+    return true;
+  }
+
+  async function createAndSendOffer() {
+    if (!peerConnection) return;
+    const offer = await peerConnection.createOffer();
+    await peerConnection.setLocalDescription(offer);
+
+    if (callRealtimeChannel) {
+      callRealtimeChannel.send({
+        type: 'broadcast',
+        event: 'signal',
+        payload: { offer: offer, sender: myPhoneNumber }
+      });
+    }
+  }
+
+  function closeWebRTC() {
+    if (peerConnection) {
+      peerConnection.close();
+      peerConnection = null;
+    }
+    if (localStream) {
+      localStream.getTracks().forEach(track => track.stop());
+      localStream = null;
+    }
+    if (remoteAudio) {
+      remoteAudio.pause();
+      remoteAudio.srcObject = null;
+      remoteAudio.remove();
+      remoteAudio = null;
+    }
+  }
+
+  // ==========================================
+  // --- TELEFONIE LOGIK (EIN- & AUSGEHEND) ---
+  // ==========================================
+
+  // 1. AUSGEHENDER ANRUF (Jede Nummer wählbar)
+  async function makeCall(targetNum = currentNumber) {
+    if (!targetNum) return;
+    if (targetNum === myPhoneNumber) {
+      alert("Du kannst dich nicht selbst anrufen!");
+      return;
+    }
+
     unlockSpeechAndAudio();
+    currentNumber = targetNum;
     
     document.getElementById('called-display-number').textContent = currentNumber;
     document.getElementById('call-status-text').textContent = "Verbinde...";
@@ -760,70 +1169,178 @@
     document.getElementById('btn-speaker').classList.remove('active');
     
     switchView('call-view');
-    
-    if (currentNumber === "112" || currentNumber === "110") {
-      startRingbackTone();
-      currentCallStatus = 'aktiv';
+    startRingbackTone();
+    currentCallStatus = 'klingelt';
 
-      try {
-        const { data, error } = await supabaseClient
-          .from('anrufe')
-          .insert([
-            { 
-              nummer: currentNumber, 
-              anrufer_nummer: myPhoneNumber,
-              status: 'aktiv', 
-              zeitpunkt: new Date() 
-            }
-          ])
-          .select();
+    try {
+      // Anruf in DB erstellen
+      const { data, error } = await supabaseClient
+        .from('anrufe')
+        .insert([{ 
+          nummer: currentNumber, 
+          anrufer_nummer: myPhoneNumber,
+          status: 'klingelt', 
+          zeitpunkt: new Date() 
+        }])
+        .select();
 
-        if (error) {
-          console.error('Fehler beim Senden des Anrufs:', error);
-          document.getElementById('call-status-text').textContent = "Fehler";
-          stopRingbackTone();
-        } else if (data && data.length > 0) {
-          activeCallId = data[0].id;
-
-          // Realtime-Abonnement
-          callRealtimeChannel = supabaseClient
-  .channel('call-' + activeCallId)
-  .on(
-    'postgres_changes',
-    { event: 'UPDATE', schema: 'public', table: 'anrufe', filter: `id=eq.${activeCallId}` },
-    (payload) => {
-      const newStatus = payload.new.status;
-      currentCallStatus = newStatus;
-
-      if (newStatus === 'angenommen' || newStatus === 'verbunden') {
-        onCallConnected();
-      } else if (newStatus === 'gehalten' || newStatus === 'halten') { // <-- Hier 'halten' ergänzt
-        playHoldAnnouncement();
-      } else if (newStatus === 'beendet') {
-        endCall();
-      }
-    }
-  )
-  .subscribe();
-        }
-      } catch (err) {
-        console.error('Verbindungsfehler:', err);
+      if (error) {
+        document.getElementById('call-status-text').textContent = "Fehler beim Wählen";
         stopRingbackTone();
+        return;
       }
 
-    } else {
-      document.getElementById('call-status-text').textContent = "Nummer nicht vergeben";
+      if (data && data.length > 0) {
+        activeCallId = data[0].id;
+
+        // Realtime Signalisierungs-Kanal öffnen
+        callRealtimeChannel = supabaseClient
+          .channel('call-' + activeCallId)
+          .on(
+            'postgres_changes',
+            { event: 'UPDATE', schema: 'public', table: 'anrufe', filter: `id=eq.${activeCallId}` },
+            async (payload) => {
+              const newStatus = payload.new.status;
+              currentCallStatus = newStatus;
+
+              if (newStatus === 'angenommen' || newStatus === 'verbunden') {
+                onCallConnected();
+              } else if (newStatus === 'gehalten' || newStatus === 'halten') {
+                playHoldAnnouncement();
+              } else if (newStatus === 'beendet' || newStatus === 'abgelehnt') {
+                endCall();
+              }
+            }
+          )
+          .on('broadcast', { event: 'signal' }, async ({ payload }) => {
+            if (payload.sender === myPhoneNumber) return;
+
+            if (payload.answer && peerConnection) {
+              await peerConnection.setRemoteDescription(new RTCSessionDescription(payload.answer));
+            } else if (payload.candidate && peerConnection) {
+              await peerConnection.addIceCandidate(new RTCIceCandidate(payload.candidate));
+            }
+          })
+          .subscribe();
+      }
+    } catch (err) {
+      stopRingbackTone();
     }
   }
 
-  // Anruf verbunden
-  function onCallConnected() {
+  // 2. EINGEHENDE ANRUFE HÖREN
+  function listenForIncomingCalls() {
+    if (!myPhoneNumber) return;
+    if (incomingCallsChannel) supabaseClient.removeChannel(incomingCallsChannel);
+
+    incomingCallsChannel = supabaseClient
+      .channel('incoming-calls-' + myPhoneNumber)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'anrufe',
+          filter: `nummer=eq.${myPhoneNumber}`
+        },
+        (payload) => {
+          const call = payload.new;
+          if (call.status === 'klingelt' && !activeCallId) {
+            showIncomingCallUI(call);
+          }
+        }
+      )
+      .subscribe();
+  }
+
+  function showIncomingCallUI(call) {
+    activeCallId = call.id;
+    startRingbackTone();
+
+    const accept = confirm(`📞 Eingehender Anruf von ${call.anrufer_nummer}!\n\nAnnehmen?`);
+    stopRingbackTone();
+
+    if (accept) {
+      acceptCall(call);
+    } else {
+      rejectCall(call.id);
+    }
+  }
+
+  // 3. ANRUF ANNEHMEN (Callee)
+  async function acceptCall(call) {
+    unlockSpeechAndAudio();
+    activeCallId = call.id;
+    currentNumber = call.anrufer_nummer;
+
+    document.getElementById('called-display-number').textContent = currentNumber;
+    document.getElementById('call-status-text').textContent = "Verbunden";
+    document.getElementById('call-status-text').style.color = "#34c759";
+    switchView('call-view');
+
+    // Status in DB auf 'angenommen' setzen
+    await supabaseClient.from('anrufe').update({ status: 'angenommen' }).eq('id', call.id);
+
+    const rtcSuccess = await setupWebRTC();
+    if (!rtcSuccess) return;
+
+    callRealtimeChannel = supabaseClient
+      .channel('call-' + activeCallId)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'anrufe', filter: `id=eq.${activeCallId}` },
+        async (payload) => {
+          if (payload.new.status === 'beendet') {
+            endCall();
+          }
+        }
+      )
+      .on('broadcast', { event: 'signal' }, async ({ payload }) => {
+        if (payload.sender === myPhoneNumber) return;
+
+        if (payload.offer && peerConnection) {
+          await peerConnection.setRemoteDescription(new RTCSessionDescription(payload.offer));
+          const answer = await peerConnection.createAnswer();
+          await peerConnection.setLocalDescription(answer);
+
+          callRealtimeChannel.send({
+            type: 'broadcast',
+            event: 'signal',
+            payload: { answer: answer, sender: myPhoneNumber }
+          });
+        } else if (payload.candidate && peerConnection) {
+          await peerConnection.addIceCandidate(new RTCIceCandidate(payload.candidate));
+        }
+      })
+      .subscribe();
+
+    startCallTimer();
+  }
+
+  // 4. ANRUF ABLEHNEN
+  async function rejectCall(callId) {
+    await supabaseClient.from('anrufe').update({ status: 'abgelehnt' }).eq('id', callId);
+    activeCallId = null;
+    loadCallHistory();
+  }
+
+  // 5. ANRUF VERBUNDEN TRAFFIC (Caller Side Offer)
+  async function onCallConnected() {
     stopRingbackTone();
     stopHoldAnnouncement();
 
     document.getElementById('call-status-text').textContent = "Verbunden";
     document.getElementById('call-status-text').style.color = "#34c759";
 
+    const rtcSuccess = await setupWebRTC();
+    if (rtcSuccess) {
+      await createAndSendOffer();
+    }
+
+    startCallTimer();
+  }
+
+  function startCallTimer() {
     callSeconds = 0;
     if (callTimerInterval) clearInterval(callTimerInterval);
     callTimerInterval = setInterval(() => {
@@ -834,10 +1351,10 @@
     }, 1000);
   }
 
-  // ANRUF BEENDEN
   async function endCall() {
     stopRingbackTone();
     stopHoldAnnouncement();
+    closeWebRTC();
 
     if (callTimerInterval) {
       clearInterval(callTimerInterval);
@@ -855,38 +1372,313 @@
           .from('anrufe')
           .update({ status: 'beendet' })
           .eq('id', activeCallId);
-      } catch (err) {
-        console.error('Fehler beim Auflegen:', err);
-      }
+      } catch (err) {}
       activeCallId = null;
     }
+    loadCallHistory();
     openDialer();
   }
 
-  // Automatisch Anruf beenden, wenn das Fenster/Tab geschlossen oder aktualisiert wird
-function autoEndCallOnUnload() {
-  if (!activeCallId) return;
+  function autoEndCallOnUnload() {
+    if (!activeCallId) return;
+    const url = `${SUPABASE_URL}/rest/v1/anrufe?id=eq.${activeCallId}`;
+    const body = JSON.stringify({ status: 'beendet' });
+    fetch(url, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'Prefer': 'return=minimal'
+      },
+      body: body,
+      keepalive: true
+    });
+  }
 
-  const url = `${SUPABASE_URL}/rest/v1/anrufe?id=eq.${activeCallId}`;
-  const body = JSON.stringify({ status: 'beendet' });
+  window.addEventListener('pagehide', autoEndCallOnUnload);
+  window.addEventListener('beforeunload', autoEndCallOnUnload);
 
-  // fetch mit keepalive stellt sicher, dass die Anfrage beim Schließen ausgeführt wird
-  fetch(url, {
-    method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-      'apikey': SUPABASE_ANON_KEY,
-      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-      'Prefer': 'return=minimal'
-    },
-    body: body,
-    keepalive: true
-  });
-}
+  // ==========================================
+  // --- KONTAKTE & ANRUFHISTORIE ---
+  // ==========================================
 
-// Event-Listener für das Schließen/Verlassen der Seite
-window.addEventListener('pagehide', autoEndCallOnUnload);
-window.addEventListener('beforeunload', autoEndCallOnUnload);
+  // Letzte Anrufe laden
+  async function loadCallHistory() {
+    if (!myPhoneNumber) return;
+
+    const { data: history } = await supabaseClient
+      .from('anrufe')
+      .select('*')
+      .or(`anrufer_nummer.eq.${myPhoneNumber},nummer.eq.${myPhoneNumber}`)
+      .order('zeitpunkt', { ascending: false })
+      .limit(15);
+
+    const container = document.getElementById('history-list');
+    if (!container) return;
+    container.innerHTML = "";
+
+    (history || []).forEach(call => {
+      const isOutgoing = call.anrufer_nummer === myPhoneNumber;
+      const partner = isOutgoing ? call.nummer : call.anrufer_nummer;
+      const icon = isOutgoing ? "↗️" : "↙️";
+      const time = call.zeitpunkt ? new Date(call.zeitpunkt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+
+      const item = document.createElement('div');
+      item.className = 'history-item';
+      item.style.cssText = "display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #333; align-items:center;";
+      item.innerHTML = `
+        <div>
+          <span>${icon} <strong>${escapeHtml(partner || 'Unbekannt')}</strong></span>
+          <small style="color:#8a8f9e; display:block;">${time} • ${call.status}</small>
+        </div>
+        <button onclick="makeCall('${escapeHtml(partner)}')" style="padding:4px 8px; border-radius:6px;">📞</button>
+      `;
+      container.appendChild(item);
+    });
+  }
+
+  // Kontakte laden
+  async function loadContacts() {
+    if (!currentAuthUserId) return;
+
+    const { data: kontakte } = await supabaseClient
+      .from('kontakte')
+      .select('*')
+      .order('name', { ascending: true });
+
+    const container = document.getElementById('contacts-list');
+    if (!container) return;
+    container.innerHTML = "";
+
+    (kontakte || []).forEach(k => {
+      const item = document.createElement('div');
+      item.className = 'contact-item';
+      item.style.cssText = "display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #333; align-items:center;";
+      item.innerHTML = `
+        <div>
+          <strong>${escapeHtml(k.name)}</strong><br>
+          <small style="color:#4cd964;">📞 ${escapeHtml(k.nummer)}</small>
+        </div>
+        <div>
+          <button onclick="makeCall('${escapeHtml(k.nummer)}')" style="padding:4px 8px; border-radius:6px; margin-right:4px;">📞</button>
+          <button onclick="deleteContact(${k.id})" style="padding:4px 8px; border-radius:6px; background:#ff3b30; color:#fff;">🗑️</button>
+        </div>
+      `;
+      container.appendChild(item);
+    });
+  }
+
+  // Kontakt hinzufügen
+  async function addContact() {
+    const name = prompt("Name des Kontakts:");
+    if (!name) return;
+    const nummer = prompt("Telefonnummer:");
+    if (!nummer) return;
+
+    const { error } = await supabaseClient
+      .from('kontakte')
+      .insert([{ name, nummer, user_id: currentAuthUserId }]);
+
+    if (error) {
+      alert("Fehler beim Speichern: " + error.message);
+    } else {
+      loadContacts();
+    }
+  }
+
+  // Kontakt löschen
+  async function deleteContact(id) {
+    if (!confirm("Kontakt wirklich löschen?")) return;
+    const { error } = await supabaseClient.from('kontakte').delete().eq('id', id);
+    if (error) {
+      alert("Fehler beim Löschen: " + error.message);
+    } else {
+      loadContacts();
+    }
+  }
+
+  function escapeHtml(str) {
+    return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  // ==========================================
+  // --- BLITZBEGEGNUNG LOGIK (TINDER APP) ---
+  // ==========================================
+
+  const fileInput = document.getElementById('t-file');
+  if(fileInput) {
+    fileInput.addEventListener('change', (e) => {
+      if(e.target.files.length > 0) {
+        document.getElementById('t-file-name').textContent = "Bild bereit: " + e.target.files[0].name;
+      }
+    });
+  }
+
+  async function openTinderApp() {
+    switchView('tinder-view');
+    await checkTinderProfile();
+  }
+
+  async function checkTinderProfile() {
+    if (!currentAuthUserId) return;
+
+    const { data, error } = await supabaseClient
+      .from('blitzbegegnung_profile')
+      .select('*')
+      .eq('user_id', currentAuthUserId)
+      .maybeSingle();
+
+    if (data) {
+      myTinderProfile = data;
+      document.getElementById('tinder-create-section').style.display = 'none';
+      document.getElementById('tinder-swipe-section').style.display = 'flex';
+
+      document.getElementById('my-tinder-name').textContent = `${data.name}, ${data.alter_zahl}`;
+      document.getElementById('my-tinder-details').textContent = `${data.geschlecht || ''} • sucht ${data.suche_nach || ''} ${data.wohnort ? '• 📍 ' + data.wohnort : ''}`;
+      document.getElementById('my-tinder-img').src = data.bild_url || 'https://via.placeholder.com/150?text=Ich';
+
+      loadTinderDeck();
+    } else {
+      myTinderProfile = null;
+      document.getElementById('tinder-create-section').style.display = 'flex';
+      document.getElementById('tinder-swipe-section').style.display = 'none';
+
+      document.getElementById('t-name').value = '';
+      document.getElementById('t-age').value = '';
+      document.getElementById('t-city').value = '';
+      document.getElementById('t-gender').value = '';
+      document.getElementById('t-seeking').value = '';
+      document.getElementById('t-hobbies').value = '';
+      document.getElementById('t-bio').value = '';
+      document.getElementById('t-file').value = '';
+      document.getElementById('t-file-name').textContent = '';
+    }
+  }
+
+  async function createTinderProfile() {
+    const name = document.getElementById('t-name').value.trim();
+    const alter = parseInt(document.getElementById('t-age').value);
+    const wohnort = document.getElementById('t-city').value.trim();
+    const geschlecht = document.getElementById('t-gender').value;
+    const suche_nach = document.getElementById('t-seeking').value;
+    const hobbys = document.getElementById('t-hobbies').value.trim();
+    const bio = document.getElementById('t-bio').value.trim();
+    const fileElem = document.getElementById('t-file');
+
+    if (!name || isNaN(alter) || !geschlecht || !suche_nach) {
+      alert('Bitte fülle Name, Alter, Geschlecht und Suche aus!');
+      return;
+    }
+
+    let bildUrl = '';
+
+    if (fileElem.files.length > 0) {
+      const file = fileElem.files[0];
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${currentAuthUserId}_${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabaseClient.storage
+        .from('blitzbegegnung')
+        .upload(fileName, file);
+
+      if (uploadError) {
+        alert('Fehler beim Bildupload: ' + uploadError.message);
+        return;
+      }
+
+      const { data: publicUrlData } = supabaseClient.storage
+        .from('blitzbegegnung')
+        .getPublicUrl(fileName);
+
+      bildUrl = publicUrlData.publicUrl;
+    }
+
+    const { error } = await supabaseClient
+      .from('blitzbegegnung_profile')
+      .insert([
+        {
+          user_id: currentAuthUserId,
+          name: name,
+          alter_zahl: alter,
+          geschlecht: geschlecht,
+          suche_nach: suche_nach,
+          wohnort: wohnort,
+          hobbys: hobbys,
+          bio: bio,
+          bild_url: bildUrl
+        }
+      ]);
+
+    if (error) {
+      alert('Fehler beim Speichern: ' + error.message);
+    } else {
+      await checkTinderProfile();
+    }
+  }
+
+  async function deleteTinderProfile() {
+    if (!confirm('Möchtest du deinen Account wirklich löschen? Danach kannst du einen neuen erstellen.')) return;
+
+    const { error } = await supabaseClient
+      .from('blitzbegegnung_profile')
+      .delete()
+      .eq('user_id', currentAuthUserId);
+
+    if (error) {
+      alert('Fehler beim Löschen: ' + error.message);
+    } else {
+      await checkTinderProfile();
+    }
+  }
+
+  async function loadTinderDeck() {
+    const { data, error } = await supabaseClient
+      .from('blitzbegegnung_profile')
+      .select('*')
+      .neq('user_id', currentAuthUserId);
+
+    if (data) {
+      tinderProfiles = data;
+      tinderIndex = 0;
+      renderCurrentCard();
+    }
+  }
+
+  function renderCurrentCard() {
+    const cardBox = document.getElementById('tinder-card-box');
+    const deckElem = document.getElementById('tinder-deck');
+    const emptyElem = document.getElementById('tinder-empty');
+
+    if (tinderIndex < tinderProfiles.length) {
+      deckElem.style.display = 'flex';
+      emptyElem.style.display = 'none';
+
+      const p = tinderProfiles[tinderIndex];
+      cardBox.innerHTML = `
+        <div class="tinder-card">
+          <img src="${p.bild_url || 'https://via.placeholder.com/280x280?text=Kein+Bild'}" alt="Profilbild">
+          <div class="tinder-card-gradient"></div>
+          <div class="tinder-card-info">
+            <div class="tinder-card-name">${p.name}, ${p.alter_zahl}</div>
+            <div class="tinder-card-sub">
+              ${p.geschlecht || ''} • sucht ${p.suche_nach || ''} ${p.wohnort ? '• 📍 ' + p.wohnort : ''}
+            </div>
+            ${p.bio ? `<div class="tinder-card-details">${p.bio}</div>` : ''}
+            ${p.hobbys ? `<div class="tinder-card-tag">⚽ ${p.hobbys}</div>` : ''}
+          </div>
+        </div>
+      `;
+    } else {
+      deckElem.style.display = 'none';
+      emptyElem.style.display = 'flex';
+    }
+  }
+
+  function nextCard() {
+    tinderIndex++;
+    renderCurrentCard();
+  }
 </script>
 
 </body>
