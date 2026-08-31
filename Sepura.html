@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<!-- Zentraler Login-Schutz -->
+  <script src="auth.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Image Frame + Push-to-Talk</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background: #000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .image-container {
+    position: relative;
+    display: inline-block;
+  }
+
+  img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* === LED (Zustands-Anzeige) === */
+  #statusLed {
+    position: absolute;
+    top: 86px;          /* Anpassen zum Skalieren/Positionieren */
+    left: 130px;        /* Anpassen zum Skalieren/Positionieren */
+    width: 24px;        /* Breite der LED */
+    height: 10px;       /* Höhe der LED */
+    background-color: #7d807d; /* Gerät aus = Inaktiv / Standardfarbe */
+    border-radius: 20%; 
+    box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+    z-index: 10;
+    transition: background-color 0.3s, box-shadow 0.3s;
+  }
+
+  /* LED-Zustände */
+  .led-red {
+    background-color: #ff3333 !important;
+    box-shadow: 0 0 8px #ff3333 !important;
+  }
+
+  .led-blue {
+    background-color: #3399ff !important;
+    box-shadow: 0 0 8px #3399ff !important;
+  }
+
+  @keyframes greenPulse {
+    0%, 90% {
+      background-color: #7d807d; /* Zurück zur Standardfarbe in der Aus-Phase */
+      box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+    }
+    95% {
+      background-color: #00ff66; /* Grün beim Aufblinken */
+      box-shadow: 0 0 8px #00ff66;
+    }
+    100% {
+      background-color: #7d807d;
+      box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+    }
+  }
+
+  .led-standby-blink {
+    animation: greenPulse 2s infinite;
+  }
+
+  /* === DISPLAY (Realistisches TETRA Layout) === */
+  #displayPanel {
+    position: absolute;
+    top: 227px;        
+    left: 50px;        
+    width: 115px;      
+    height: 147px;      
+    background-color: #222; /* Gerät aus = dunkel */
+    color: #000000;
+    font-family: "Courier New", Courier, monospace;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 4px 5px;
+    box-sizing: border-box;
+    border-radius: 6px;
+    border: 2px solid #00ff6600;
+    box-shadow: 0 0 8px #00ff6600;
+    overflow: hidden;
+  }
+
+  #bootImage {
+    max-width: 70px;
+    max-height: 70px;
+    display: none;
+    margin: auto;
+  }
+
+  /* Statusleiste oben */
+  #statusBar {
+    display: none;
+    font-size: 8px;
+    font-weight: 2000;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #000;
+    padding-bottom: 2px;
+    width: 100%;
+  }
+
+  #radioStateIcon {
+    background: #000;
+    color: #fff;
+    padding: 1px 3px;
+    border-radius: 2px;
+    font-size: 7px;
+  }
+
+  /* Hauptbereich (Kanal / Sprecher) */
+  #mainDisplayContent {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex-grow: 1;
+    text-align: center;
+  }
+
+  #displayText {
+    font-size: 16px;
+    font-weight: 2000;
+    letter-spacing: -0.5px;
+    text-shadow: 0.5px 0.5px 0px #000;
+  }
+
+  #subText {
+    font-size: 9px;
+    margin-top: 3px;
+    font-weight: bold;
+  }
+
+  /* Softkey-Leiste unten */
+  #softkeyBar {
+    display: none;
+    font-size: 9px;
+    font-weight: 2000;
+    justify-content: space-between;
+    border-top: 1px solid #000;
+    padding-top: 2px;
+    width: 100%;
+  }
+
+  /* === BUTTONS === */
+  .overlay-btn {
+    position: absolute;
+    background-color: rgba(37, 99, 235, 0.85);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: 0.2s;
+    user-select: none;
+  }
+
+  .overlay-btn:hover {
+    background-color: rgba(59,130,246,1);
+    transform: scale(1.05);
+  }
+
+  /* Fahrzeuganzeige */
+  #vehicleHeader {
+    position: absolute;
+    top: 100px;
+    left: 40px;
+    width: 130px;          
+    height: 28px;          
+    display: flex;
+    align-items: center;   
+    justify-content: center; 
+    color: #000000;
+    font-family: "Courier New", monospace;
+    font-size: 12px;       
+    font-weight: bold;
+    user-select: none;
+    text-align: center;
+    white-space: nowrap;   
+    overflow: hidden;      
+  }
+
+  /* Tastenpositionen */
+  #btn-action1 { bottom: 225px; left: 49px; }
+  #btn-action2 { bottom: 225px; left: 88px; }
+  #btn-action3 { bottom: 225px; left: 129px; }
+  #btn-action4 { bottom: 191px; left: 49px; }
+  #btn-action5 { bottom: 191px; left: 88px; }
+  #btn-action6 { bottom: 191px; left: 129px; }
+  #btn-action7 { bottom: 157px; left: 49px; }
+  #btn-action8 { bottom: 157px; left: 88px; }
+  #btn-action9 { bottom: 157px; left: 129px; }
+  #btn-action0 { bottom: 123px; left: 88px; }
+  #btn-actionRuf { bottom: 270px; left: 44px; }
+  #btn-actionAus { bottom: 270px; right: 46px; }
+  #btn-ChannelUp { bottom: 287px; left: 88px; }
+  #btn-ChannelDown { bottom: 256px; left: 88px; }
+  #btn-menu { bottom: 318px; left: 50px; }
+  #btn-options { bottom: 318px; right: 50px; }
+</style>
+</head>
+<body>
+<div class="image-container">
+  <img id="displayImage" alt="Bild">
+  <div id="vehicleHeader">FZ</div>
+
+  <div id="statusLed"></div>
+
+  <div id="displayPanel">
+    <img id="bootImage" src="boot_logo.png" alt="Boot">
+    
+    <div id="statusBar">
+      <div>
+        <span id="netMode">TMO</span>
+        <span id="radioStateIcon">IDLE</span>
+      </div>
+      <span id="clock">00:00</span>
+    </div>
+
+    <div id="mainDisplayContent">
+      <div id="displayText">DN_ALLG</div>
+      <div id="subText">E-Bereit Wache</div>
+    </div>
+
+    <div id="softkeyBar">
+      <span id="softkeyLeftText">Menü</span>
+      <span id="softkeyRightText">Opt.</span>
+    </div>
+  </div>
+
+  <button class="overlay-btn" id="btn-action1">1</button>
+  <button class="overlay-btn" id="btn-action2">2</button>
+  <button class="overlay-btn" id="btn-action3">3</button>
+  <button class="overlay-btn" id="btn-action4">4</button>
+  <button class="overlay-btn" id="btn-action5">5</button>
+  <button class="overlay-btn" id="btn-action6">6</button>
+  <button class="overlay-btn" id="btn-action7">7</button>
+  <button class="overlay-btn" id="btn-action8">8</button>
+  <button class="overlay-btn" id="btn-action9">9</button>
+  <button class="overlay-btn" id="btn-action0">0</button>
+  <button class="overlay-btn" id="btn-actionRuf">X</button>
+  <button class="overlay-btn" id="btn-actionAus">X</button>
+  <button class="overlay-btn" id="btn-ChannelUp">X</button>
+  <button class="overlay-btn" id="btn-ChannelDown">X</button>
+  <button class="overlay-btn" id="btn-menu">X</button>
+  <button class="overlay-btn" id="btn-options">X</button>
+</div>
+
+<script>
+// --- SUPABASE CONFIGURATION ---
+const SUPABASE_URL = 'https://kvbeogaiijppblhaoqyc.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YmVvZ2FpaWpwcGJsaGFvcXljIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxMTI4NTMsImV4cCI6MjEwMzY4ODg1M30.cPz9RJ3pqtS91UE1wuj-1i0UiCR5iSmjVELDnYjcx-0';
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const params = new URLSearchParams(window.location.search);
+const src = params.get('src');
+const img = document.getElementById('displayImage');
+
+const fahrzeugRaw = params.get('fz') || 'Unbekanntes Fahrzeug';
+const fahrzeug = fahrzeugRaw.replace(/[\r\n]+/g, ' '); 
+
+const vehicleHeader = document.getElementById('vehicleHeader');
+vehicleHeader.textContent = fahrzeug;
+
+if (src) img.src = src;
+else document.body.innerHTML = '<p style="color:white">Kein Bild angegeben.</p>';
+
+const displayPanel = document.getElementById('displayPanel');
+const statusLed = document.getElementById('statusLed');
+const displayTextSpan = document.getElementById('displayText');
+const subText = document.getElementById('subText');
+const bootImage = document.getElementById('bootImage');
+const statusBar = document.getElementById('statusBar');
+const radioStateIcon = document.getElementById('radioStateIcon');
+const mainDisplayContent = document.getElementById('mainDisplayContent');
+const softkeyBar = document.getElementById('softkeyBar');
+const clock = document.getElementById('clock');
+
+// Status-Texte Mapping
+const statusTexts = {
+  1: "E-Bereit Funk",
+  2: "E-Bereit Wache",
+  3: "E-Anfahrt",
+  4: "An E-Stelle",
+  5: "Sprechwunsch",
+  6: "Nicht E-Bereit",
+  7: "Pat. Aufgenommen",
+  8: "Zielort-Anfahrt",
+  9: "Prio. Sprechwunsch",
+  0: "NOTRUF"
+};
+
+// Audio für Statusmeldung definieren
+const statusSound = new Audio("Status-1.wav");
+
+// LED Hilfsfunktion
+function setLedState(state) {
+  statusLed.className = "";
+  if (state === "red") statusLed.classList.add('led-red');
+  else if (state === "blue") statusLed.classList.add('led-blue');
+  else if (state === "standby") statusLed.classList.add('led-standby-blink');
+}
+
+function setDisplayText(text) {
+  displayTextSpan.textContent = text;
+}
+
+let room = "DN_ALLG";
+
+// --- Funktion: Status frisch aus der Datenbank laden und anzeigen ---
+async function fetchAndDisplayStatus() {
+  try {
+    const { data, error } = await supabaseClient
+      .from('fahrzeuge')
+      .select('status')
+      .eq('name', fahrzeug)
+      .single();
+
+    if (error) {
+      console.warn("⚠️ Konnte Status nicht aus DB laden:", error.message);
+      subText.textContent = "Status ?";
+      return;
+    }
+
+    if (data && data.status !== null && data.status !== undefined) {
+      const statusNum = data.status;
+      const textDescription = statusTexts[statusNum] || `Status ${statusNum}`;
+      subText.textContent = textDescription;
+    } else {
+      subText.textContent = "Bereit";
+    }
+  } catch (err) {
+    console.error("❌ Fehler beim Abrufen des Status:", err);
+    subText.textContent = "Netzwerk Err";
+  }
+}
+
+// --- Status-Update Funktion für Supabase ---
+async function sendStatusToSupabase(statusValue) {
+  if (!deviceOn) return;
+  
+  const textDescription = statusTexts[statusValue] || `Status ${statusValue}`;
+
+  try {
+    const { data, error } = await supabaseClient
+      .from('fahrzeuge')
+      .update({ 
+        status: statusValue, 
+        updated_at: new Date().toISOString() 
+      })
+      .eq('name', fahrzeug);
+
+    if (error) {
+      console.error("❌ Fehler beim Aktualisieren des Status in Supabase:", error.message);
+      subText.textContent = "Status Err";
+    } else {
+      console.log(`✅ Status ${statusValue} (${textDescription}) erfolgreich für ${fahrzeug} gespeichert.`);
+      
+      // Status-Ton abspielen
+      statusSound.currentTime = 0;
+      statusSound.play().catch(err => console.warn("⚠️ Status-Ton konnte nicht abgespielt werden:", err));
+
+      // Direkt den Text anzeigen
+      subText.textContent = textDescription;
+    }
+  } catch (err) {
+    console.error("❌ Netzwerkfehler:", err);
+  }
+}
+
+// --- Logik für 2 Sekunden langes Halten der Zifferntasten (0-9) ---
+for (let i = 0; i <= 9; i++) {
+  const btn = document.getElementById(`btn-action${i}`);
+  if (!btn) continue;
+
+  let holdTimer = null;
+
+  const startHold = (e) => {
+    e.preventDefault();
+    if (!deviceOn) return;
+
+    holdTimer = setTimeout(() => {
+      sendStatusToSupabase(i);
+      holdTimer = null;
+    }, 2000);
+  };
+
+  const cancelHold = (e) => {
+    if (holdTimer) {
+      clearTimeout(holdTimer);
+      holdTimer = null;
+    }
+  };
+
+  btn.addEventListener('mousedown', startHold);
+  btn.addEventListener('mouseup', cancelHold);
+  btn.addEventListener('mouseleave', cancelHold);
+  
+  btn.addEventListener('touchstart', startHold);
+  btn.addEventListener('touchend', cancelHold);
+  btn.addEventListener('touchcancel', cancelHold);
+}
+
+// --- WebRTC / Audio State ---
+let audioCtx, localStream, filteredStream, audioTrack;
+let audioReady = false; 
+const pcs = {}; 
+const myId = fahrzeug;
+const ws = new WebSocket("wss://lstsim.onrender.com");
+
+const talkSound = new Audio("Funken.wav");
+let channelBusy = false;
+let deviceOn = false;
+
+let pendingUsers = [];
+
+function makeTetraDistortionCurve() {
+  const n = 44100;
+  const curve = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    const x = i * 2 / n - 1;
+    curve[i] = Math.tanh(x * 1.5);
+  }
+  return curve;
+}
+
+async function initAudio() {
+  if (filteredStream) return;
+  try {
+    localStream = await navigator.mediaDevices.getUserMedia({
+      audio: { 
+        noiseSuppression: true, 
+        echoCancellation: true, 
+        autoGainControl: true,
+        sampleRate: 8000 
+      }
+    });
+  } catch (err) {
+    console.error("❌ Fehler beim Mikrofon-Zugriff:", err);
+    return;
+  }
+
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const source = audioCtx.createMediaStreamSource(localStream);
+
+  const hpFilter = audioCtx.createBiquadFilter();
+  hpFilter.type = "highpass";
+  hpFilter.frequency.value = 400;
+
+  const lpFilter = audioCtx.createBiquadFilter();
+  lpFilter.type = "lowpass";
+  lpFilter.frequency.value = 2800;
+
+  const presenceFilter = audioCtx.createBiquadFilter();
+  presenceFilter.type = "peaking";
+  presenceFilter.frequency.value = 2000;
+  presenceFilter.Q.value = 2.0;
+  presenceFilter.gain.value = 6.0;
+
+  const compressor = audioCtx.createDynamicsCompressor();
+  compressor.threshold.value = -24;
+  compressor.knee.value = 10;
+  compressor.ratio.value = 12;
+  compressor.attack.value = 0.003;
+  compressor.release.value = 0.25;
+
+  const distortion = audioCtx.createWaveShaper();
+  distortion.curve = makeTetraDistortionCurve();
+  distortion.oversample = '2x';
+
+  source.connect(hpFilter);
+  hpFilter.connect(compressor);
+  compressor.connect(presenceFilter);
+  presenceFilter.connect(distortion);
+  distortion.connect(lpFilter);
+
+  const destination = audioCtx.createMediaStreamDestination();
+  lpFilter.connect(destination);
+  filteredStream = destination.stream;
+
+  audioTrack = filteredStream.getAudioTracks()[0];
+  audioTrack.enabled = false;
+  audioReady = true;
+
+  pendingUsers.forEach(peerId => {
+    createPeerConnection(peerId, true);
+  });
+  pendingUsers = [];
+}
+
+function createPeerConnection(peerId, isInitiator) {
+  if (peerId === myId) return;
+  if (pcs[peerId]) return pcs[peerId];
+
+  if (!audioReady) {
+    if (!pendingUsers.includes(peerId)) pendingUsers.push(peerId);
+    return;
+  }
+
+  const pc = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
+  pcs[peerId] = pc;
+
+  if (audioTrack) {
+    pc.addTrack(audioTrack, filteredStream);
+  }
+
+  pc.ontrack = e => {
+    let audioEl = document.getElementById(`audio-${peerId}`);
+    if (!audioEl) {
+      audioEl = document.createElement("audio");
+      audioEl.id = `audio-${peerId}`;
+      audioEl.autoplay = true;
+      document.body.appendChild(audioEl);
+    }
+    audioEl.srcObject = e.streams[0];
+    audioEl.play().catch(err => console.warn(`⚠️ Autoplay blockiert:`, err));
+  };
+
+  pc.onicecandidate = e => {
+    if (e.candidate) {
+      ws.send(JSON.stringify({
+        type: "signal", room, to: peerId, from: myId, payload: { candidate: e.candidate }
+      }));
+    }
+  };
+
+  if (isInitiator) {
+    pc.onnegotiationneeded = async () => {
+      try {
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        ws.send(JSON.stringify({
+          type: "signal", room, to: peerId, from: myId, payload: { sdp: offer }
+        }));
+      } catch (err) {
+        console.error("Fehler beim Offer:", err);
+      }
+    };
+  }
+
+  return pc;
+}
+
+ws.onopen = () => {
+  ws.send(JSON.stringify({ type: "join", room, from: myId }));
+};
+
+ws.onmessage = async (event) => {
+  const msg = JSON.parse(event.data);
+
+  if (msg.type === "user_list") {
+    msg.users.forEach(peerId => {
+      if (peerId !== myId) createPeerConnection(peerId, true);
+    });
+  }
+
+  if (msg.type === "user_joined") {
+    if (msg.id !== myId) createPeerConnection(msg.id, false);
+  }
+
+  if (msg.type === "user_left") {
+    if (pcs[msg.id]) {
+      pcs[msg.id].close();
+      delete pcs[msg.id];
+    }
+    const audioEl = document.getElementById(`audio-${msg.id}`);
+    if (audioEl) audioEl.remove();
+  }
+
+  if (msg.type === "signal") {
+    const { from, payload } = msg;
+    if (msg.to && msg.to !== myId) return;
+
+    const pc = pcs[from] || createPeerConnection(from, false);
+    if (!pc) return;
+
+    if (payload.sdp) {
+      await pc.setRemoteDescription(new RTCSessionDescription(payload.sdp));
+      if (payload.sdp.type === "offer") {
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        ws.send(JSON.stringify({
+          type: "signal", room, to: from, from: myId, payload: { sdp: answer }
+        }));
+      }
+    } else if (payload.candidate) {
+      try {
+        await pc.addIceCandidate(new RTCIceCandidate(payload.candidate));
+      } catch(e) {}
+    }
+  }
+
+  if (msg.type === "lock_granted") {
+    channelBusy = true;
+    if (deviceOn) {
+      setDisplayText(msg.holder);
+      setLedState("blue");
+      if (msg.holder === myId) {
+        subText.textContent = "Senden...";
+        radioStateIcon.textContent = "TX";
+      } else {
+        subText.textContent = "Empfang...";
+        radioStateIcon.textContent = "RX";
+      }
+    }
+  }
+  if (msg.type === "unlock") {
+    channelBusy = false;
+    if (deviceOn) {
+      setDisplayText(room);
+      radioStateIcon.textContent = "IDLE";
+      setLedState("standby");
+      // Nach dem Funken holen wir den echten Status frisch aus der DB zurück
+      fetchAndDisplayStatus();
+    }
+  }
+};
+
+const btnPower = document.getElementById('btn-actionAus');
+let powerTimer = null;
+
+btnPower.addEventListener('mousedown', () => { if (!deviceOn) powerTimer = setTimeout(powerOnSequence, 3000); });
+btnPower.addEventListener('mouseup', () => { if (powerTimer) clearTimeout(powerTimer); });
+btnPower.addEventListener('touchstart', (e) => { e.preventDefault(); if (!deviceOn) powerTimer = setTimeout(powerOnSequence, 3000); });
+btnPower.addEventListener('touchend', (e) => { e.preventDefault(); if (powerTimer) clearTimeout(powerTimer); });
+
+async function powerOnSequence() {
+  deviceOn = true;
+  displayPanel.style.backgroundColor = "#fff";
+  setLedState("red"); 
+  bootImage.style.display = "block";
+  setDisplayText(""); 
+  subText.textContent = "";
+
+  await initAudio();
+  if (audioCtx && audioCtx.state === 'suspended') {
+    await audioCtx.resume();
+  }
+
+  // Sobald das Gerät hochgefahren ist, laden wir den Status direkt aus der Datenbank
+  await fetchAndDisplayStatus();
+
+  setTimeout(() => {
+    bootImage.style.display = "none";
+    statusBar.style.display = "flex";
+    mainDisplayContent.style.display = "flex";
+    softkeyBar.style.display = "flex";
+    setDisplayText(room);
+    radioStateIcon.textContent = "IDLE";
+    setLedState("standby");
+  }, 5000);
+}
+
+function updateClock() {
+  const now = new Date();
+  const hours = now.getHours().toString().padStart(2,'0');
+  const minutes = now.getMinutes().toString().padStart(2,'0');
+  clock.textContent = `${hours}:${minutes}`;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+const btnPTT = document.getElementById('btn-actionRuf');
+
+function startTalking() {
+  if (!deviceOn || channelBusy) return;
+
+  if (audioTrack) {
+    audioTrack.enabled = true;
+  }
+
+  ws.send(JSON.stringify({ type: "request_lock", room, from: myId }));
+  radioStateIcon.textContent = "TX";
+  subText.textContent = "Senden...";
+  setLedState("blue");
+
+  talkSound.currentTime = 0;
+  talkSound.play().catch(()=>{});
+}
+
+const endSound = new Audio("ende.wav");
+
+function stopTalking() {
+  if (!deviceOn) return;
+
+  if (audioTrack) {
+    audioTrack.enabled = false;
+  }
+
+  ws.send(JSON.stringify({ type: "release_lock", room, from: myId }));
+  setDisplayText(room);
+  radioStateIcon.textContent = "IDLE";
+  setLedState("standby");
+
+  // Datenbank-Status nach dem Sprechen wiederherstellen
+  fetchAndDisplayStatus();
+
+  endSound.currentTime = 0;
+  endSound.play().catch(()=>{});
+}
+
+btnPTT.addEventListener('mousedown', startTalking);
+btnPTT.addEventListener('mouseup', stopTalking);
+btnPTT.addEventListener('touchstart', (e) => { e.preventDefault(); startTalking(); });
+btnPTT.addEventListener('touchend', (e) => { e.preventDefault(); stopTalking(); });
+
+// --- Fahrzeug beim Schließen des Sepura-Fensters freigeben ---
+window.addEventListener('pagehide', async () => {
+  if (!fahrzeug) return;
+  
+    await supabaseClient
+      .from('fahrzeuge')
+      .update({ besetzt: false })
+      .eq('name', fahrzeug);
+});
+</script>
+</body>
+</html>

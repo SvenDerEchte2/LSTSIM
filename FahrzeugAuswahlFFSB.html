@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <!-- Zentraler Login-Schutz -->
+  <script src="auth.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ILS OBERALLGÄU | FAHRZEUGAUSWAHL</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<header>
+  <div class="system-title">
+    <span>ILS OBERALLGÄU / FF SAARBRICKEN</span>
+    <span class="system-tag">EINHEITEN-AUSWAHL</span>
+  </div>
+  <button class="logout-btn" onclick="window.location.href='FahrzeugAuswahl.html'">Zurück zur Übersicht</button>
+</header>
+
+<main>
+  <div class="sub-header">
+    <div class="user-info">Fahrzeug oder Arbeitsplatz besetzen</div>
+    <div class="connection-status">
+      <span class="status-indicator"></span> WACHE 1 / FF-SB
+    </div>
+  </div>
+
+  <div class="vehicle-grid">
+    <button class="vehicle-card" onclick="selectVehicle(this)">
+      <div class="vehicle-info">
+        <div class="vehicle-callsign">Florian SB 11/1</div>
+        <div class="vehicle-type">Mehrzweckfahrzeug (MZF)</div>
+      </div>
+      <div class="vehicle-tag">MZF</div>
+    </button>
+
+    <button class="vehicle-card" onclick="selectVehicle(this)">
+      <div class="vehicle-info">
+        <div class="vehicle-callsign">Florian SB 12/1</div>
+        <div class="vehicle-type">Einsatzleitwagen (ELW 1)</div>
+      </div>
+      <div class="vehicle-tag">ELW</div>
+    </button>
+  </div>
+</main>
+
+<script>
+  function selectVehicle(buttonElement) {
+    // Holt sich NUR den Text aus dem Funkrufname-Container
+    const fzName = buttonElement.querySelector('.vehicle-callsign').innerText;
+    window.location.href = 'GerätAuswahl.html?fz=' + encodeURIComponent(fzName);
+  }
+</script>
+
+</body>
+</html>

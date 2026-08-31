@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <!-- Zentraler Login-Schutz -->
+  <script src="auth.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ILS OBERALLGÄU | LEITSTELLENTABLEAU</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body style="overflow: hidden;">
+
+<header>
+  <div class="system-title">
+    <span>ILS OBERALLGÄU / LEITSTELLENTABLEAU</span>
+    <span class="system-tag">ELR-DISPO</span>
+  </div>
+  <button class="logout-btn" onclick="window.location.href='index.html'">Abmelden</button>
+</header>
+
+<div class="command-bar">
+  <button class="cmd-btn" id="btn1">Neuer Einsatz</button>
+  <button class="cmd-btn danger" id="btn2">Einsatz Abschließen</button>
+  <button class="cmd-btn" id="btn3">Lagemeldung</button>
+  <button class="cmd-btn" id="btn4">Patient anmelden</button>
+  <button class="cmd-btn" id="btn6">Karte</button>
+  <button class="cmd-btn" id="btn7">Gefahrgut-DB</button>
+
+  <button id="alarm-button" class="alarm-btn-main">🚨 ALARM AUSLÖSEN</button>
+</div>
+
+<div class="dashboard-container">
+  <!-- LINKER BEREICH: FORMULAR -->
+  <main class="dispatch-form-panel">
+    <div class="form-section-title">Einsatz-Eingabemaske</div>
+
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="stichwort">Stichwort / Indikation</label>
+        <input type="text" id="stichwort" autocomplete="off" placeholder="z. B. B3 - Person in Gefahr" />
+      </div>
+
+      <div class="form-group">
+        <label for="meldebild">Meldebild</label>
+        <input type="text" id="meldebild" autocomplete="off" placeholder="z. B. Rauchentwicklung aus Fenster" />
+      </div>
+
+      <div class="form-group">
+        <label for="melder">Melder / Anrufer</label>
+        <input type="text" id="melder" autocomplete="off" placeholder="Name, Telefonnummer" />
+      </div>
+
+      <div class="form-group">
+        <label for="objekt">Objekt / Einrichtung</label>
+        <input type="text" id="objekt" autocomplete="off" placeholder="z. B. Schule, Firma XY" />
+      </div>
+
+      <div class="form-group">
+        <label for="strasse">Straße / Hausnummer</label>
+        <input type="text" id="strasse" autocomplete="off" placeholder="Hauptstraße 12" />
+      </div>
+
+      <div class="form-group">
+        <label for="ort">Ort / Gemeinde</label>
+        <input type="text" id="ort" autocomplete="off" placeholder="Sonthofen" />
+      </div>
+
+      <div class="form-group">
+        <label for="stadtteil">Stadtteil / Ortsteil</label>
+        <input type="text" id="stadtteil" autocomplete="off" placeholder="Rieden" />
+      </div>
+
+      <div class="form-group">
+        <label>Sondersignal (SoSi)</label>
+        <label class="checkbox-group">
+          <input type="checkbox" id="sondersignale" />
+          <span style="font-size: 12px; color: var(--text-primary);">Alarmierung mit Blaulicht &amp; Einsatzhorn</span>
+        </label>
+      </div>
+
+      <div class="form-group full-width">
+        <label for="sonstiges">Sonstige Hinweise / Bemerkungen</label>
+        <textarea id="sonstiges" rows="3" placeholder="Zusätzliche Informationen für die Einsatzkräfte..."></textarea>
+      </div>
+    </div>
+  </main>
+
+  <!-- RECHTER BEREICH: FAHRZEUGE + EINSÄTZE -->
+  <aside class="sidebar-panel">
+    <!-- Fahrzeugliste -->
+    <div class="sidebar-section">
+      <div class="sidebar-header">Fahrzeuge &amp; Einheiten</div>
+      <div class="sidebar-content" id="fahrzeug-panel">
+        <!-- Dynamischer Inhalt via JS -->
+      </div>
+    </div>
+
+    <!-- Einsatzliste -->
+    <div class="sidebar-section">
+      <div class="sidebar-header">Offene Einsätze</div>
+      <div class="sidebar-content" id="einsatz-list">
+        <!-- Dynamischer Inhalt via JS -->
+      </div>
+
+      <div class="radio-controls">
+        <div id="channel-status" style="font-size: 11px; color: var(--text-secondary); text-align: center; margin-bottom: 4px; font-weight: bold;">Kanal frei</div>
+        <button class="radio-btn active-room" id="btn_dn_allg">DN_ALLG</button>
+        <button class="radio-btn" id="btn_dn_fw">DN_FW</button>
+        <button class="radio-btn" id="btn_dn_pol">DN_POL</button>
+        <button class="ptt-btn" id="btn_ptt">PTT (LST SB sprechen)</button>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<!-- SUPABASE INTEGRATION -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const SUPABASE_URL = 'https://kvbeogaiijppblhaoqyc.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YmVvZ2FpaWpwcGJsaGFvcXljIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxMTI4NTMsImV4cCI6MjEwMzY4ODg1M30.cPz9RJ3pqtS91UE1wuj-1i0UiCR5iSmjVELDnYjcx-0';
+  const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  let selectedVehicles = new Set();
+  let currentEinsatzId = null;
+
+  async function loadFahrzeuge() {
+    // Aktuell geöffnete Ordner zwischenspeichern, damit sie nach dem Refresh offen bleiben
+    const openOrgs = new Set();
+    document.querySelectorAll(".org-group").forEach(group => {
+      const list = group.querySelector(".vehicle-list");
+      const orgName = group.querySelector(".org-header span").textContent;
+      if (list && list.style.display === "block") {
+        openOrgs.add(orgName);
+      }
+    });
+
+    const { data: orgs, error: err1 } = await db.from("organisations").select("*").order("name");
+    if (err1) { console.error(err1); return; }
+    const { data: fahrzeuge, error: err2 } = await db.from("fahrzeuge").select("*").order("name");
+    if (err2) { console.error(err2); return; }
+
+    buildFahrzeugTree(orgs || [], fahrzeuge || [], openOrgs);
+  }
+
+  function buildFahrzeugTree(orgs, fahrzeuge, openOrgs) {
+    const panel = document.getElementById("fahrzeug-panel");
+    panel.innerHTML = "";
+
+    orgs.forEach(org => {
+      const orgGroup = document.createElement("div");
+      orgGroup.className = "org-group";
+
+      const orgHeader = document.createElement("div");
+      orgHeader.className = "org-header";
+      const cleanOrgName = org.name;
+      const isOpen = openOrgs.has(`📁 ${cleanOrgName}`);
+
+      orgHeader.innerHTML = `<span>📁 ${escapeHtml(org.name)}</span> <span>${isOpen ? '▴' : '▾'}</span>`;
+
+      const list = document.createElement("div");
+      list.className = "vehicle-list";
+      list.style.display = isOpen ? "block" : "none";
+
+      fahrzeuge.filter(v => v.org_id === org.id).forEach(v => {
+        const vehicleDiv = document.createElement("div");
+        vehicleDiv.className = "vehicle-item";
+        if (selectedVehicles.has(v.id)) vehicleDiv.classList.add("selected-vehicle");
+        vehicleDiv.dataset.id = v.id;
+        vehicleDiv.innerHTML = `
+          <span>🚒 ${escapeHtml(v.name)}</span>
+          <span class="status-badge">S${v.status ?? "1"}</span>
+        `;
+
+        vehicleDiv.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const id = Number(vehicleDiv.dataset.id);
+          if (selectedVehicles.has(id)) {
+            selectedVehicles.delete(id);
+            vehicleDiv.classList.remove("selected-vehicle");
+          } else {
+            selectedVehicles.add(id);
+            vehicleDiv.classList.add("selected-vehicle");
+          }
+        });
+
+        list.appendChild(vehicleDiv);
+      });
+
+      orgHeader.addEventListener("click", () => {
+        const isVisible = list.style.display === "block";
+        list.style.display = isVisible ? "none" : "block";
+        orgHeader.querySelector('span:last-child').textContent = isVisible ? '▾' : '▴';
+      });
+
+      orgGroup.appendChild(orgHeader);
+      orgGroup.appendChild(list);
+      panel.appendChild(orgGroup);
+    });
+  }
+
+  async function loadEinsaetze() {
+    const { data: einsaetze, error } = await db
+      .from("einsaetze")
+      .select("*")
+      .eq("abgeschlossen", false)
+      .order("datum", { ascending: true })
+      .order("uhrzeit", { ascending: true });
+
+    if (error) { console.error(error); return; }
+
+    const listDiv = document.getElementById("einsatz-list");
+    listDiv.innerHTML = "";
+
+    (einsaetze || []).forEach(e => {
+      const div = document.createElement("div");
+      div.className = "einsatz-item";
+      if (currentEinsatzId === e.id) div.classList.add("selected-einsatz");
+      div.dataset.id = e.id;
+      div.innerHTML = `
+        <div class="einsatz-title">🚨 ${escapeHtml(e.stichwort)}</div>
+        <div class="einsatz-sub">${escapeHtml(String(e.ort))} | ${e.uhrzeit} Uhr</div>
+      `;
+
+      div.addEventListener("click", () => {
+        document.querySelectorAll(".einsatz-item").forEach(x => x.classList.remove("selected-einsatz"));
+        div.classList.add("selected-einsatz");
+        currentEinsatzId = e.id;
+
+        document.getElementById("melder").value = e.melder ?? "";
+        document.getElementById("strasse").value = e.straße ?? "";
+        document.getElementById("objekt").value = e.objekt ?? "";
+        document.getElementById("ort").value = e.ort ?? "";
+        document.getElementById("stadtteil").value = e.stadtteil ?? "";
+        document.getElementById("stichwort").value = e.stichwort ?? "";
+        document.getElementById("meldebild").value = e.meldebild ?? "";
+        document.getElementById("sonstiges").value = e.sonstiges ?? "";
+        document.getElementById("sondersignale").checked = !!e.sondersignale;
+      });
+
+      listDiv.appendChild(div);
+    });
+  }
+
+  function escapeHtml(s = "") {
+    return String(s)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#39;");
+  }
+
+  async function alarmieren() {
+    const melder = document.getElementById("melder").value;
+    const strasse = document.getElementById("strasse").value;
+    const objekt = document.getElementById("objekt").value;
+    const ort = document.getElementById("ort").value;
+    const stadtteil = document.getElementById("stadtteil").value;
+    const stichwort = document.getElementById("stichwort").value;
+    const meldebild = document.getElementById("meldebild").value;
+    const sonstiges = document.getElementById("sonstiges").value;
+    const sondersignale = document.getElementById("sondersignale").checked;
+
+    if (!stichwort || !ort) {
+      alert("Bitte mindestens Stichwort und Ort ausfüllen.");
+      return;
+    }
+
+    const nr = 0;
+    const today = new Date();
+    const datum = today.toISOString().split("T")[0];
+    const uhrzeit = today.toTimeString().split(":").slice(0,2).join(":");
+
+    const { data: einsatzData, error: err } = await db
+      .from("einsaetze")
+      .insert([{
+        datum, uhrzeit, stichwort, ort, melder,
+        straße: strasse, nr, objekt, stadtteil, meldebild,
+        sonstiges, sondersignale, abgeschlossen: false
+      }])
+      .select()
+      .single();
+
+    if (err) {
+      alert("Fehler beim Anlegen: " + err.message);
+      return;
+    }
+
+    const einsatzId = einsatzData.id;
+    const inserts = [...selectedVehicles].map(id => ({ einsatz_id: einsatzId, fahrzeug_id: id }));
+    
+    if (inserts.length > 0) {
+      const { error: err2 } = await db.from("einsatz_fahrzeuge").insert(inserts);
+      if (err2) alert("Fehler bei Fahrzeugzuordnung: " + err2.message);
+    }
+
+    selectedVehicles.clear();
+    await loadEinsaetze();
+    await loadFahrzeuge();
+    alert("🚨 Einsatz erfolgreich alarmiert!");
+  }
+
+  async function schliesseEinsatz() {
+    if (!currentEinsatzId) { alert("Kein Einsatz ausgewählt."); return; }
+    const { error } = await db.from("einsaetze").update({ abgeschlossen: true }).eq("id", currentEinsatzId);
+    if (error) { alert("Fehler beim Abschließen."); return; }
+    currentEinsatzId = null;
+    await loadEinsaetze();
+    alert("Einsatz abgeschlossen.");
+  }
+
+  function setupRealtime() {
+    db.channel("realtime_fahrzeuge")
+      .on("postgres_changes", { event: "*", schema: "public", table: "fahrzeuge" }, () => loadFahrzeuge())
+      .subscribe();
+
+    db.channel("realtime_einsaetze")
+      .on("postgres_changes", { event: "*", schema: "public", table: "einsaetze" }, () => loadEinsaetze())
+      .subscribe();
+  }
+
+  // --- WEBRTC / AUDIO LOGIK FÜR DIE LEITSTELLE ---
+  const myId = "LST SB";
+  let room = "DN_ALLG";
+  let audioCtx, localStream, filteredStream, audioTrack;
+  let audioReady = false;
+  const pcs = {};
+  const ws = new WebSocket("wss://lstsim.onrender.com");
+
+  const talkSound = new Audio("Funken.wav");
+  const endSound = new Audio("ende.wav");
+  let channelBusy = false;
+
+  function makeTetraDistortionCurve() {
+    const n = 44100;
+    const curve = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+      const x = i * 2 / n - 1;
+      curve[i] = Math.tanh(x * 1.5);
+    }
+    return curve;
+  }
+
+  async function initAudio() {
+    if (filteredStream) return;
+    try {
+      localStream = await navigator.mediaDevices.getUserMedia({
+        audio: { 
+          noiseSuppression: true, 
+          echoCancellation: true, 
+          autoGainControl: true,
+          sampleRate: 8000 
+        }
+      });
+    } catch (err) {
+      console.error("❌ Fehler beim Mikrofon-Zugriff in der Leitstelle:", err);
+      return;
+    }
+
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const source = audioCtx.createMediaStreamSource(localStream);
+
+    const hpFilter = audioCtx.createBiquadFilter();
+    hpFilter.type = "highpass";
+    hpFilter.frequency.value = 400;
+
+    const lpFilter = audioCtx.createBiquadFilter();
+    lpFilter.type = "lowpass";
+    lpFilter.frequency.value = 2800;
+
+    const presenceFilter = audioCtx.createBiquadFilter();
+    presenceFilter.type = "peaking";
+    presenceFilter.frequency.value = 2000;
+    presenceFilter.Q.value = 2.0;
+    presenceFilter.gain.value = 6.0;
+
+    const compressor = audioCtx.createDynamicsCompressor();
+    compressor.threshold.value = -24;
+    compressor.knee.value = 10;
+    compressor.ratio.value = 12;
+    compressor.attack.value = 0.003;
+    compressor.release.value = 0.25;
+
+    const distortion = audioCtx.createWaveShaper();
+    distortion.curve = makeTetraDistortionCurve();
+    distortion.oversample = '2x';
+
+    source.connect(hpFilter);
+    hpFilter.connect(compressor);
+    compressor.connect(presenceFilter);
+    presenceFilter.connect(distortion);
+    distortion.connect(lpFilter);
+
+    const destination = audioCtx.createMediaStreamDestination();
+    lpFilter.connect(destination);
+    filteredStream = destination.stream;
+
+    audioTrack = filteredStream.getAudioTracks()[0];
+    audioTrack.enabled = false;
+    audioReady = true;
+  }
+
+  function createPeerConnection(peerId, isInitiator) {
+    if (peerId === myId) return;
+    if (pcs[peerId]) return pcs[peerId];
+
+    const pc = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
+    pcs[peerId] = pc;
+
+    if (audioTrack) {
+      pc.addTrack(audioTrack, filteredStream);
+    }
+
+    pc.ontrack = e => {
+      let audioEl = document.getElementById(`audio-${peerId}`);
+      if (!audioEl) {
+        audioEl = document.createElement("audio");
+        audioEl.id = `audio-${peerId}`;
+        audioEl.autoplay = true;
+        document.body.appendChild(audioEl);
+      }
+      audioEl.srcObject = e.streams[0];
+      audioEl.play().catch(err => console.warn(`⚠️ Autoplay blockiert:`, err));
+    };
+
+    pc.onicecandidate = e => {
+      if (e.candidate) {
+        ws.send(JSON.stringify({
+          type: "signal", room, to: peerId, from: myId, payload: { candidate: e.candidate }
+        }));
+      }
+    };
+
+    if (isInitiator) {
+      pc.onnegotiationneeded = async () => {
+        try {
+          const offer = await pc.createOffer();
+          await pc.setLocalDescription(offer);
+          ws.send(JSON.stringify({
+            type: "signal", room, to: peerId, from: myId, payload: { sdp: offer }
+          }));
+        } catch (err) {
+          console.error("Fehler beim Offer:", err);
+        }
+      };
+    }
+
+    return pc;
+  }
+
+  ws.onopen = () => {
+    ws.send(JSON.stringify({ type: "join", room, from: myId }));
+  };
+
+  ws.onmessage = async (event) => {
+    const msg = JSON.parse(event.data);
+    const statusDiv = document.getElementById("channel-status");
+
+    if (msg.type === "user_list") {
+      msg.users.forEach(peerId => {
+        if (peerId !== myId) createPeerConnection(peerId, true);
+      });
+    }
+
+    if (msg.type === "user_joined") {
+      if (msg.id !== myId) createPeerConnection(msg.id, false);
+    }
+
+    if (msg.type === "user_left") {
+      if (pcs[msg.id]) {
+        pcs[msg.id].close();
+        delete pcs[msg.id];
+      }
+      const audioEl = document.getElementById(`audio-${msg.id}`);
+      if (audioEl) audioEl.remove();
+    }
+
+    if (msg.type === "signal") {
+      const { from, payload } = msg;
+      if (msg.to && msg.to !== myId) return;
+
+      const pc = pcs[from] || createPeerConnection(from, false);
+      if (!pc) return;
+
+      if (payload.sdp) {
+        await pc.setRemoteDescription(new RTCSessionDescription(payload.sdp));
+        if (payload.sdp.type === "offer") {
+          const answer = await pc.createAnswer();
+          await pc.setLocalDescription(answer);
+          ws.send(JSON.stringify({
+            type: "signal", room, to: from, from: myId, payload: { sdp: answer }
+          }));
+        }
+      } else if (payload.candidate) {
+        try {
+          await pc.addIceCandidate(new RTCIceCandidate(payload.candidate));
+        } catch(e) {}
+      }
+    }
+
+    if (msg.type === "lock_granted") {
+      channelBusy = true;
+      if (msg.holder === myId) {
+        statusDiv.textContent = "🎙️ Du sprichst (gesendet)";
+        statusDiv.style.color = "#cc0000";
+      } else {
+        statusDiv.textContent = `🔊 ${msg.holder} spricht...`;
+        statusDiv.style.color = "#ffaa00";
+      }
+    }
+    if (msg.type === "unlock") {
+      channelBusy = false;
+      statusDiv.textContent = "Kanal frei";
+      statusDiv.style.color = "var(--text-secondary)";
+    }
+  };
+
+  // Raum-Umschaltung
+  function switchRoom(newRoom, btnElement) {
+    room = newRoom;
+    document.querySelectorAll(".radio-btn").forEach(b => b.classList.remove("active-room"));
+    btnElement.classList.add("active-room");
+    ws.send(JSON.stringify({ type: "join", room, from: myId }));
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    loadFahrzeuge();
+    loadEinsaetze();
+    setupRealtime();
+    initAudio();
+
+    document.getElementById("alarm-button").addEventListener("click", alarmieren);
+    document.getElementById("btn2").addEventListener("click", schliesseEinsatz);
+    
+    document.getElementById("btn1").addEventListener("click", () => {
+      document.querySelectorAll("input[type='text'], textarea").forEach(i => i.value = "");
+      document.getElementById("sondersignale").checked = false;
+      currentEinsatzId = null;
+      document.querySelectorAll(".einsatz-item").forEach(x => x.classList.remove("selected-einsatz"));
+    });
+
+    // Kanaltasten Verknüpfung
+    document.getElementById("btn_dn_allg").addEventListener("click", (e) => switchRoom("DN_ALLG", e.target));
+    document.getElementById("btn_dn_fw").addEventListener("click", (e) => switchRoom("DN_FW", e.target));
+    document.getElementById("btn_dn_pol").addEventListener("click", (e) => switchRoom("DN_POL", e.target));
+
+    // PTT Button Logik für Leitstelle
+    const pttBtn = document.getElementById("btn_ptt");
+
+    async function startTalkingLST() {
+      if (audioCtx && audioCtx.state === 'suspended') {
+        await audioCtx.resume();
+      }
+      if (channelBusy) return;
+
+      if (audioTrack) {
+        audioTrack.enabled = true;
+      }
+
+      ws.send(JSON.stringify({ type: "request_lock", room, from: myId }));
+      pttBtn.style.backgroundColor = "#cc0000";
+      pttBtn.style.color = "#ffffff";
+
+      talkSound.currentTime = 0;
+      talkSound.play().catch(()=>{});
+    }
+
+    function stopTalkingLST() {
+      if (audioTrack) {
+        audioTrack.enabled = false;
+      }
+
+      ws.send(JSON.stringify({ type: "release_lock", room, from: myId }));
+      pttBtn.style.backgroundColor = "";
+      pttBtn.style.color = "";
+
+      endSound.currentTime = 0;
+      endSound.play().catch(()=>{});
+    }
+
+    pttBtn.addEventListener("mousedown", startTalkingLST);
+    pttBtn.addEventListener("mouseup", stopTalkingLST);
+    pttBtn.addEventListener("touchstart", (e) => { e.preventDefault(); startTalkingLST(); });
+    pttBtn.addEventListener("touchend", (e) => { e.preventDefault(); stopTalkingLST(); });
+  });
+</script>
+
+</body>
+</html>

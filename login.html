@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ILS OBERALLGÄU | LOGIN</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    /* Nur kleine Layout-Helfer für die zentrierte Login-Card, die auf dem Tableau nicht stören */
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body>
+
+<div class="login-card">
+  <h2>ILS OBERALLGÄU<br><span style="font-size: 12px; color: var(--text-secondary);">Leitstellen-Login</span></h2>
+  
+  <div class="form-group" style="margin-bottom: 15px;">
+    <label for="username">Benutzername / E-Mail</label>
+    <input type="text" id="username" autocomplete="off" placeholder="z.B. leitstelle@ils.de" />
+  </div>
+
+  <div class="form-group" style="margin-bottom: 15px;">
+    <label for="password">Passwort / PIN</label>
+    <input type="password" id="password" placeholder="••••••••" />
+  </div>
+
+  <button class="cmd-btn danger" id="login-submit" style="width: 100%; justify-content: center; margin-top: 10px;">Anmelden</button>
+  <div id="error-msg" style="color: #ff4444; font-size: 12px; text-align: center; margin-top: 10px;"></div>
+</div>
+
+<!-- SUPABASE INTEGRATION -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const SUPABASE_URL = 'https://kvbeogaiijppblhaoqyc.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YmVvZ2FpaWpwcGJsaGFvcXljIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxMTI4NTMsImV4cCI6MjEwMzY4ODg1M30.cPz9RJ3pqtS91UE1wuj-1i0UiCR5iSmjVELDnYjcx-0';
+  const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  async function handleLogin() {
+    let email = document.getElementById("username").value.trim();
+    const password = document.getElementById("password").value.trim();
+    const errorDiv = document.getElementById("error-msg");
+    errorDiv.textContent = "";
+
+    if (!email || !password) {
+      errorDiv.textContent = "Bitte Benutzer/E-Mail und Passwort eingeben.";
+      return;
+    }
+
+    if (!email.includes("@")) {
+      email += "@ils-oberallgaeu.de"; 
+    }
+
+    const { data, error } = await db.auth.signInWithPassword({
+      email: email,
+      password: password,
+    });
+
+    if (error) {
+      errorDiv.textContent = "Ungültige Anmeldedaten: " + error.message;
+      return;
+    }
+
+    window.location.replace("index.html");
+  }
+
+  document.getElementById("login-submit").addEventListener("click", handleLogin);
+  document.getElementById("password").addEventListener("keypress", (e) => {
+    if (e.key === "Enter") handleLogin();
+  });
+</script>
+
+</body>
+</html>

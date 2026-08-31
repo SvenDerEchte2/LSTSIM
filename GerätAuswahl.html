@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <!-- Zentraler Login-Schutz -->
+  <script src="auth.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ILS OBERALLGÄU | ENDGERÄTE-AUSWAHL</title>
+  <link rel="stylesheet" href="style.css" />
+  <!-- Supabase Client Bibliothek hinzufügen -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<header>
+  <div class="system-title">
+    <span>ILS OBERALLGÄU / ENDGERÄTE-KONFIGURATION</span>
+    <span class="system-tag">HARDWARE</span>
+  </div>
+  <button class="logout-btn" onclick="window.history.back()">Zurück zur Fahrzeugauswahl</button>
+</header>
+
+<main>
+  <div class="selected-vehicle-banner">
+    <span>AUSGEWÄHLTE EINHEIT:</span>
+    <strong id="fz-display">KEIN FAHRZEUG GEWÄHLT</strong>
+  </div>
+
+  <div class="sub-header">
+    <div class="user-info">Betriebsart / Funk- und Endgerät wählen</div>
+    <div class="connection-status">
+      <span class="status-indicator"></span> DIGITALFUNK (TETRA) BEREIT
+    </div>
+  </div>
+
+  <div class="device-grid">
+    <!-- Sepura MRT / Fahrzeugfunk -->
+    <button class="device-card" id="digitalfunkBtn">
+      <div class="device-header">
+        <div class="device-title">Sepura SRG3900 / MRT</div>
+        <div class="device-type-tag">FMT-01</div>
+      </div>
+      <div class="device-desc">Fahrzeugeinbau-Funkgerät mit FMS-Geber &amp; Statusanzeige</div>
+    </button>
+  </div>
+</main>
+
+<script>
+// --- SUPABASE CONFIGURATION ---
+const SUPABASE_URL = 'https://kvbeogaiijppblhaoqyc.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YmVvZ2FpaWpwcGJsaGFvcXljIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxMTI4NTMsImV4cCI6MjEwMzY4ODg1M30.cPz9RJ3pqtS91UE1wuj-1i0UiCR5iSmjVELDnYjcx-0';
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// 🚗 Fahrzeug aus der URL holen
+const params = new URLSearchParams(window.location.search);
+const fahrzeug = params.get('fz');
+
+const fzDisplay = document.getElementById('fz-display');
+if (fahrzeug) {
+  fzDisplay.textContent = fahrzeug;
+}
+
+const digitalfunkBtn = document.getElementById('digitalfunkBtn');
+
+// --- Funktion: Prüfen, ob das Fahrzeug bereits besetzt ist ---
+async function checkVehicleStatus() {
+  if (!fahrzeug) return;
+
+  try {
+    const { data, error } = await supabaseClient
+      .from('fahrzeuge')
+      .select('besetzt')
+      .eq('name', fahrzeug)
+      .single();
+
+    if (error) {
+      console.warn("⚠️ Konnte Besetzt-Status nicht prüfen:", error.message);
+      return;
+    }
+
+    if (data && data.besetzt) {
+      lockUI("Fahrzeug ist bereits im Einsatz / besetzt");
+    }
+  } catch (err) {
+    console.error("❌ Fehler bei Statusprüfung:", err);
+  }
+}
+
+// UI sperren/ausgrauen
+function lockUI(reason) {
+  digitalfunkBtn.disabled = true;
+  digitalfunkBtn.style.opacity = "0.4";
+  digitalfunkBtn.style.cursor = "not-allowed";
+  
+  const infoDiv = document.querySelector('.user-info');
+  if (infoDiv) {
+    infoDiv.textContent = `❌ ${reason}`;
+    infoDiv.style.color = "#ff3333";
+  }
+}
+
+// Beim Laden der Seite direkt prüfen
+checkVehicleStatus();
+
+// Echtzeit-Lauscher: Falls jemand anderes das Fahrzeug besetzt
+if (fahrzeug) {
+  supabaseClient
+    .channel('vehicle_lock_channel')
+    .on('postgres_changes', { 
+      event: 'UPDATE', 
+      schema: 'public', 
+      table: 'fahrzeuge',
+      filter: `name=eq.${fahrzeug}`
+    }, (payload) => {
+      if (payload.new && payload.new.besetzt) {
+        lockUI("Fahrzeug wurde soeben anderweitig besetzt");
+      } else if (payload.new && !payload.new.besetzt) {
+        window.location.reload(); 
+      }
+    })
+    .subscribe();
+}
+
+// --- Gerät auswählen & in DB als besetzt markieren ---
+async function openDevice(imgSrc, targetHtml) {
+  if (!fahrzeug) {
+    alert("Kein Fahrzeug ausgewählt!");
+    return;
+  }
+
+  // 1. In der Datenbank auf 'besetzt = true' setzen
+  const { error } = await supabaseClient
+    .from('fahrzeuge')
+    .update({ besetzt: true })
+    .eq('name', fahrzeug);
+
+  if (error) {
+    console.error("❌ Fehler beim Sperren in der DB:", error.message);
+    alert("Das Fahrzeug konnte nicht gesperrt werden.");
+    return;
+  }
+
+  // 2. Fenster öffnen
+  const img = new Image();
+  img.src = imgSrc;
+
+  img.onload = () => {
+    const width = img.width;
+    const height = img.height;
+
+    const newWindow = window.open(
+      `${targetHtml}?fz=${encodeURIComponent(fahrzeug)}&src=${encodeURIComponent(imgSrc)}`,
+      '_blank',
+      `width=${width},height=${height},resizable=yes`
+    );
+
+    // Doppelte Absicherung: Intervall prüft, ob das Fenster geschlossen wurde
+    const checkWindowClosed = setInterval(async () => {
+      if (!newWindow || newWindow.closed) {
+        clearInterval(checkWindowClosed);
+        await supabaseClient
+          .from('fahrzeuge')
+          .update({ besetzt: false })
+          .eq('name', fahrzeug);
+      }
+    }, 1000);
+  };
+}
+
+// Event Listener für Button
+digitalfunkBtn.addEventListener('click', () => {
+  openDevice('funkhoehrer.png', 'Sepura.html');
+});
+</script>
+
+</body>
+</html>

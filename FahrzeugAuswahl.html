@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <!-- Zentraler Login-Schutz -->
+  <script src="auth.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ILS OBERALLGÄU | FAHRZEUGAUSWAHL</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<header>
+  <div class="system-title">
+    <span>ILS OBERALLGÄU / FAHRZEUG-DISPOSITION</span>
+    <span class="system-tag">FMS-GEBER</span>
+  </div>
+  <button class="logout-btn" onclick="window.location.href='index.html'">Zurück zum Hauptmenü</button>
+</header>
+
+<main>
+  <div class="sub-header">
+    <div class="user-info">Dienststellen- &amp; Organisationsauswahl</div>
+    <div class="connection-status">
+      <span class="status-indicator"></span> STATUS: BEREIT
+    </div>
+  </div>
+
+  <div class="org-grid">
+    <!-- Freiwillige Feuerwehr Saarbricken -->
+    <button class="org-card type-fw" onclick="window.location.href='FahrzeugAuswahlFFSB.html'">
+      <div class="org-info">
+        <div class="org-name">FF Saarbricken</div>
+        <div class="org-sub">Freiwillige Feuerwehr – Löschbezirk Mitte</div>
+      </div>
+      <div class="org-code">FW-SB</div>
+    </button>
+
+    <!-- Freiwillige Feuerwehr Steinfelden -->
+    <button class="org-card type-fw" onclick="window.location.href='FahrzeugAuswahl.html'">
+      <div class="org-info">
+        <div class="org-name">FF Steinfelden</div>
+        <div class="org-sub">Freiwillige Feuerwehr – Wache 1</div>
+      </div>
+      <div class="org-code">FW-ST</div>
+    </button>
+
+    <!-- Polizei -->
+    <button class="org-card type-pol" onclick="window.location.href='FahrzeugAuswahl.html'">
+      <div class="org-info">
+        <div class="org-name">Polizeiinspektion</div>
+        <div class="org-sub">Polizei Saarbrücken / Oberallgäu</div>
+      </div>
+      <div class="org-code">POL-SB</div>
+    </button>
+
+    <!-- BRK Rettungsdienst -->
+    <button class="org-card type-rd" onclick="window.location.href='FahrzeugAuswahl.html'">
+      <div class="org-info">
+        <div class="org-name">BRK Rettungsdienst</div>
+        <div class="org-sub">Bayerisches Rotes Kreuz – Rettungswache</div>
+      </div>
+      <div class="org-code">RD-BRK</div>
+    </button>
+
+    <!-- BRK Bereitschaft -->
+    <button class="org-card type-rd" onclick="window.location.href='FahrzeugAuswahl.html'">
+      <div class="org-info">
+        <div class="org-name">BRK Bereitschaft</div>
+        <div class="org-sub">Bayerisches Rotes Kreuz – Katastrophenschutz</div>
+      </div>
+      <div class="org-code">KAT-BRK</div>
+    </button>
+  </div>
+</main>
+
+</body>
+</html>

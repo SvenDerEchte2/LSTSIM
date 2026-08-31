@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <!-- Zentraler Login-Schutz -->
+  <script src="auth.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ILS OBERALLGÄU | SAARBRICKEN RP</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<header>
+  <div class="system-title">
+    <span>ILS OBERALLGÄU / SAARBRICKEN</span>
+    <span class="system-tag">v2.4-BOS</span>
+  </div>
+  <button class="logout-btn" onclick="handleLogout()">Abmelden</button>
+</header>
+
+<main>
+  <div class="sub-header">
+    <div class="user-info" id="welcome-message">Angemeldet als: Lade...</div>
+    <div class="connection-status">
+      <span class="status-indicator"></span> SYSTEM ONLINE (DB VERBUNDEN)
+    </div>
+  </div>
+
+  <div class="modules-grid">
+    <button class="module-card" onclick="window.location.href='FahrzeugAuswahl.html'">
+      <div>
+        <div class="module-title">Fahrzeugverwaltung</div>
+        <div class="module-desc">Fahrzeug besetzen, FMS-Geber &amp; Statusanzeige</div>
+      </div>
+      <div class="module-code">MOD-01 // FMS</div>
+    </button>
+
+    <button class="module-card" id="openbtn">
+      <div>
+        <div class="module-title">Meldeempfänger</div>
+        <div class="module-desc">DME / Pager Ansicht öffnen</div>
+      </div>
+      <div class="module-code">MOD-02 // DME</div>
+    </button>
+
+    <button class="module-card" onclick="window.location.href='Leitstellentableau.html'">
+      <div>
+        <div class="module-title">Leitstellentableau</div>
+        <div class="module-desc">Einsatzdisposition &amp; Einsatzmittelübersicht</div>
+      </div>
+      <div class="module-code">MOD-03 // LST</div>
+    </button>
+
+    <button class="module-card" onclick="window.location.href='verwaltung.html'">
+      <div>
+        <div class="module-title">Verwaltung</div>
+        <div class="module-desc">Stammdaten, Dienstpläne &amp; Personal</div>
+      </div>
+      <div class="module-code">MOD-04 // ADM</div>
+    </button>
+
+    <button class="module-card" id="btn-administration">
+      <div>
+        <div class="module-title">System-Konfiguration</div>
+        <div class="module-desc">Netzwerk- und Rechteeinstellungen</div>
+      </div>
+      <div class="module-code">SYS-99 // CFG</div>
+    </button>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  // Funktion kapseln, damit keine globalen Konflikte entstehen
+  (async function() {
+    const _url = 'https://kvbeogaiijppblhaoqyc.supabase.co';
+    const _key = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YmVvZ2FpaWpwcGJsaGFvcXljIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxMTI4NTMsImV4cCI6MjEwMzY4ODg1M30.cPz9RJ3pqtS91UE1wuj-1i0UiCR5iSmjVELDnYjcx-0';
+    const localDb = window.supabase.createClient(_url, _key);
+
+    // Benutzername beim Laden der Seite ermitteln und anzeigen
+    const { data: { user } } = await localDb.auth.getUser();
+    if (user) {
+      const identifier = user.email || "Leitstellner";
+      document.getElementById("welcome-message").textContent = `Angemeldet als: ${identifier}`;
+    }
+
+    // Saubere Logout-Funktion global verfügbar machen
+    window.handleLogout = async function() {
+      await localDb.auth.signOut();
+      sessionStorage.clear();
+      localStorage.clear();
+      window.location.replace("login.html");
+    };
+  })();
+</script>
+
+<script>
+  const btn = document.getElementById('openbtn');
+  btn.addEventListener('click', () => {
+    const imgSrc = 'melder.png';
+    const img = new Image();
+    img.src = imgSrc;
+    img.onload = () => {
+      const width = img.width;
+      const height = img.height;
+
+      window.open(`Melder.html?src=${encodeURIComponent(imgSrc)}`, '_blank',
+        `width=${width},height=${height},resizable=yes`);
+    };
+  });
+</script>
+</body>
+</html>
